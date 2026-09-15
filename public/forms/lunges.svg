@@ -1,54 +1,53 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" role="img" aria-label="Proper form for Lunges">
   <rect width="800" height="600" fill="#18181b"/>
-  <text x="400" y="44" text-anchor="middle" fill="#a1a1aa" font-family="system-ui,sans-serif" font-size="22" font-weight="600">Lunges — proper form</text>
+  <text x="400" y="42" text-anchor="middle" fill="#a1a1aa" font-family="system-ui,sans-serif" font-size="22" font-weight="600">Lunges — proper form</text>
   <defs>
     <marker id="arr" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
       <path d="M0,0 L8,3 L0,6 Z" fill="#f97316"/>
     </marker>
   </defs>
 
-  <line x1="60" y1="530" x2="740" y2="530" stroke="#3f3f46" stroke-width="3"/>
-  <g fill="#e4e4e7">
-    <ellipse cx="380" cy="130" rx="28" ry="32"/>
-    <path d="M365 160
-      C380 155 405 158 415 175
-      L435 260
-      C442 285 438 310 425 330
-      L480 390
-      C505 420 525 460 535 505
-      L540 525
-      C545 538 565 535 562 518
-      L550 470
-      C540 430 515 395 490 370
-      L450 330
-      C435 310 430 290 425 270
-      L400 320
-      C380 360 350 410 320 460
-      L295 510
-      C288 525 305 538 320 528
-      L350 505
-      C365 490 380 460 395 430
-      L415 380
-      C425 355 430 335 430 315
-      L440 250
-      C450 220 460 195 470 175
-      L485 150
-      C492 138 478 128 468 138
-      L450 165
-      C438 185 428 210 420 230
-      L405 200
-      C395 175 380 162 365 160 Z
-      M355 185
-      C335 200 315 225 300 250
-      L280 285
-      C270 300 280 315 295 308
-      L320 280
-      C335 255 350 225 355 185 Z"/>
-  </g>
-  <line x1="535" y1="390" x2="535" y2="500" stroke="#f97316" stroke-width="2" stroke-dasharray="6 5"/>
-  <text x="620" y="450" fill="#f97316" font-family="system-ui,sans-serif" font-size="13" font-weight="600">front knee over ankle</text>
-  <text x="380" y="90" text-anchor="middle" fill="#f97316" font-family="system-ui,sans-serif" font-size="14" font-weight="600">tall torso · drop back knee</text>
-  <circle cx="310" cy="500" r="7" fill="#f97316"/>
-  <text x="220" y="495" text-anchor="end" fill="#f97316" font-family="system-ui,sans-serif" font-size="13" font-weight="600">rear knee soft</text>
+  <line x1="50" y1="530" x2="750" y2="530" stroke="#3f3f46" stroke-width="3"/>
+  <path fill="#d4d4d8" stroke="#a1a1aa" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" d="
+M355 88
+C338 84 325 98 328 116
+C331 134 346 146 364 141
+C382 136 392 120 387 102
+C383 90 368 85 355 88Z
+M352 138
+C372 135 392 148 400 175
+C412 220 415 270 408 310
+C455 340 510 380 538 435
+C552 465 558 500 555 520
+C553 532 538 535 532 522
+C520 490 505 455 485 430
+C468 408 448 392 430 382
+C418 405 395 430 365 445
+C340 458 312 455 295 435
+C275 465 245 500 220 520
+C208 530 192 525 195 508
+C200 480 225 445 250 415
+C275 385 305 355 330 335
+C338 295 340 245 345 200
+C348 170 348 150 352 138Z
+M395 185
+C430 200 465 230 485 265
+C495 282 480 295 465 282
+C445 260 415 230 395 210
+C386 200 386 188 395 185Z
+M325 185
+C300 200 275 230 260 265
+C250 282 265 292 278 278
+C295 255 315 225 330 205
+C336 195 334 188 325 185Z
+"/>
+  <path fill="none" stroke="#a1a1aa" stroke-width="1.15" opacity="0.5" d="M355 155 C360 210 358 265 350 310"/>
+  <text x="360" y="70" text-anchor="middle" fill="#f97316" font-family="system-ui,sans-serif" font-size="14" font-weight="600">tall torso · both knees ~90°</text>
+  <line x1="540" y1="400" x2="540" y2="520" stroke="#f97316" stroke-width="2" stroke-dasharray="6 5"/>
+  <circle cx="525" cy="415" r="7" fill="#f97316"/>
+  <text x="610" y="445" fill="#f97316" font-family="system-ui,sans-serif" font-size="13" font-weight="600">knee over ankle</text>
+  <circle cx="230" cy="500" r="7" fill="#f97316"/>
+  <text x="140" y="495" text-anchor="end" fill="#f97316" font-family="system-ui,sans-serif" font-size="13" font-weight="600">rear knee soft</text>
+  <text x="360" y="260" text-anchor="middle" fill="#f97316" font-family="system-ui,sans-serif" font-size="13" font-weight="600">upright</text>
 
 </svg>

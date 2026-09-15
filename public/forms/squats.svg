@@ -1,56 +1,61 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" role="img" aria-label="Proper form for Squats">
   <rect width="800" height="600" fill="#18181b"/>
-  <text x="400" y="44" text-anchor="middle" fill="#a1a1aa" font-family="system-ui,sans-serif" font-size="22" font-weight="600">Squats — proper form</text>
+  <text x="400" y="42" text-anchor="middle" fill="#a1a1aa" font-family="system-ui,sans-serif" font-size="22" font-weight="600">Squats — proper form</text>
   <defs>
     <marker id="arr" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
       <path d="M0,0 L8,3 L0,6 Z" fill="#f97316"/>
     </marker>
   </defs>
 
-  <line x1="60" y1="530" x2="740" y2="530" stroke="#3f3f46" stroke-width="3"/>
-  <g fill="#e4e4e7">
-    <ellipse cx="400" cy="145" rx="30" ry="34"/>
-    <path d="M380 175
-      C395 168 420 170 430 185
-      L450 250
-      C458 275 455 300 445 320
-      L480 355
-      C510 385 535 430 545 485
-      L550 520
-      C553 535 535 542 525 528
-      L505 485
-      C490 440 465 400 440 375
-      L410 350
-      C400 365 390 365 380 350
-      L350 375
-      C325 400 300 440 285 485
-      L265 528
-      C255 542 237 535 240 520
-      L245 485
-      C255 430 280 385 310 355
-      L345 320
-      C335 300 332 275 340 250
-      L360 185
-      C365 175 372 172 380 175 Z
-      M430 210
-      C460 225 495 245 520 265
-      L545 285
-      C558 295 550 315 535 308
-      L505 285
-      C480 265 455 245 435 230 Z
-      M370 210
-      C340 225 305 245 280 265
-      L255 285
-      C242 295 250 315 265 308
-      L295 285
-      C320 265 345 245 365 230 Z"/>
-  </g>
-  <text x="400" y="90" text-anchor="middle" fill="#f97316" font-family="system-ui,sans-serif" font-size="14" font-weight="600">chest proud</text>
-  <line x1="400" y1="100" x2="400" y2="125" stroke="#f97316" stroke-width="2"/>
-  <text x="200" y="320" text-anchor="middle" fill="#f97316" font-family="system-ui,sans-serif" font-size="14" font-weight="600">hips back &amp; down</text>
-  <path d="M280 330 L340 345" stroke="#f97316" stroke-width="2" marker-end="url(#arr)"/>
-  <line x1="265" y1="480" x2="265" y2="400" stroke="#f97316" stroke-width="2" stroke-dasharray="5 4"/>
-  <line x1="535" y1="480" x2="535" y2="400" stroke="#f97316" stroke-width="2" stroke-dasharray="5 4"/>
-  <text x="400" y="565" text-anchor="middle" fill="#f97316" font-family="system-ui,sans-serif" font-size="14" font-weight="600">knees track over toes · heels planted</text>
+  <line x1="50" y1="530" x2="750" y2="530" stroke="#3f3f46" stroke-width="3"/>
+  <path fill="#d4d4d8" stroke="#a1a1aa" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" d="
+M418 118
+C402 112 388 122 390 140
+C392 158 406 170 424 166
+C442 162 452 146 448 128
+C445 116 430 112 418 118Z
+M412 162
+C428 158 448 168 458 190
+C472 225 480 265 472 300
+C468 318 455 332 438 340
+C455 348 480 365 502 392
+C520 415 532 450 538 488
+C542 512 538 525 522 526
+C505 527 498 512 496 492
+C492 455 478 425 458 405
+C442 388 422 378 405 372
+C398 390 382 402 360 400
+C340 398 328 380 332 360
+C336 340 350 328 365 325
+C350 310 340 285 342 255
+C344 220 355 190 372 175
+C385 165 398 162 412 162Z
+M455 195
+C490 210 530 230 565 250
+C580 260 578 280 560 278
+C525 274 488 255 458 235
+C445 225 442 205 455 195Z
+M400 200
+C375 215 348 240 330 265
+C318 280 330 292 345 282
+C365 265 388 240 405 220
+C412 210 410 202 400 200Z
+M365 370
+C340 385 310 415 292 455
+C280 482 268 512 262 525
+C258 535 245 532 248 518
+C255 480 275 440 300 410
+C318 388 340 372 360 365
+C365 362 368 365 365 370Z
+"/>
+  <path fill="none" stroke="#a1a1aa" stroke-width="1.15" opacity="0.5" d="M420 175 C430 220 435 270 428 315"/>
+  <path fill="none" stroke="#a1a1aa" stroke-width="1.15" opacity="0.5" d="M405 340 C430 350 460 365 485 390"/>
+  <text x="420" y="90" text-anchor="middle" fill="#f97316" font-family="system-ui,sans-serif" font-size="14" font-weight="600">chest up · neutral spine</text>
+  <line x1="420" y1="100" x2="420" y2="120" stroke="#f97316" stroke-width="2"/>
+  <text x="220" y="340" text-anchor="middle" fill="#f97316" font-family="system-ui,sans-serif" font-size="14" font-weight="600">hips back &amp; down</text>
+  <path d="M280 345 L350 355" stroke="#f97316" stroke-width="2.5" fill="none" marker-end="url(#arr)"/>
+  <circle cx="500" cy="400" r="7" fill="#f97316"/>
+  <text x="580" y="395" fill="#f97316" font-family="system-ui,sans-serif" font-size="13" font-weight="600">knees track toes</text>
+  <text x="400" y="565" text-anchor="middle" fill="#f97316" font-family="system-ui,sans-serif" font-size="13" font-weight="600">heels planted</text>
 
 </svg>

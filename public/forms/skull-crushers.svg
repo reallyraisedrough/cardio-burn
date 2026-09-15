@@ -1,70 +1,63 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" role="img" aria-label="Proper form for Skull-crushers">
   <rect width="800" height="600" fill="#18181b"/>
-  <text x="400" y="44" text-anchor="middle" fill="#a1a1aa" font-family="system-ui,sans-serif" font-size="22" font-weight="600">Skull-crushers — proper form</text>
+  <text x="400" y="42" text-anchor="middle" fill="#a1a1aa" font-family="system-ui,sans-serif" font-size="22" font-weight="600">Skull-crushers — proper form</text>
   <defs>
     <marker id="arr" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
       <path d="M0,0 L8,3 L0,6 Z" fill="#f97316"/>
     </marker>
   </defs>
 
-  <line x1="60" y1="470" x2="740" y2="470" stroke="#3f3f46" stroke-width="3"/>
-  <!-- bench outline -->
-  <rect x="180" y="300" width="440" height="24" rx="3" fill="#52525b"/>
-  <rect x="200" y="324" width="16" height="120" fill="#3f3f46"/>
-  <rect x="584" y="324" width="16" height="120" fill="#3f3f46"/>
-  <g fill="#e4e4e7">
-    <!-- supine figure on bench, arms bent holding weight above head -->
-    <ellipse cx="220" cy="270" rx="30" ry="34"/>
-    <path d="M245 275
-      C290 265 360 268 430 275
-      L520 285
-      C555 290 580 300 590 320
-      L600 350
-      C605 365 590 375 575 368
-      L540 350
-      C510 335 470 328 430 325
-      L320 318
-      C280 315 255 320 245 340
-      L230 380
-      C222 400 235 415 255 412
-      L290 405
-      C310 400 325 385 330 365
-      L340 330
-      C350 340 370 348 395 350
-      L450 355
-      C480 358 505 365 520 380
-      L545 405
-      C555 418 575 415 578 398
-      L570 365
-      C560 335 540 315 510 305
-      L450 290
-      C400 280 340 275 290 278
-      L255 282
-      C248 278 245 275 245 275 Z"/>
-    <!-- upper arms vertical + forearms toward forehead with weight -->
-    <path d="M380 275
-      L375 200
-      C373 185 385 175 398 178
-      L410 185
-      C420 155 430 130 445 110
-      L460 90
-      C468 78 455 65 440 72
-      L415 95
-      C400 115 390 145 385 175
-      L378 185
-      C365 180 350 185 348 200
-      L345 260
-      C344 275 360 280 370 275 Z"/>
-    <!-- dumbbell -->
-    <rect x="425" y="70" width="55" height="18" rx="4" fill="#a1a1aa"/>
-    <rect x="415" y="62" width="14" height="34" rx="3" fill="#d4d4d8"/>
-    <rect x="475" y="62" width="14" height="34" rx="3" fill="#d4d4d8"/>
+  <line x1="50" y1="460" x2="750" y2="460" stroke="#3f3f46" stroke-width="3"/>
+  <rect x="145" y="308" width="510" height="22" rx="3" fill="#52525b"/>
+  <rect x="165" y="330" width="14" height="100" fill="#3f3f46"/>
+  <rect x="610" y="330" width="14" height="100" fill="#3f3f46"/>
+  <path fill="#d4d4d8" stroke="#a1a1aa" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" d="
+M188 235
+C170 230 155 245 158 265
+C161 285 178 298 196 292
+C214 286 222 268 216 250
+C211 237 200 232 188 235Z
+M210 270
+C255 258 320 262 395 272
+C470 282 540 298 585 320
+C610 332 628 355 630 375
+C632 390 615 398 600 390
+C570 372 535 358 500 350
+C455 340 410 335 365 333
+C320 331 280 338 255 355
+C238 368 235 390 250 405
+C270 425 305 428 340 418
+C370 410 395 392 410 370
+C435 380 470 388 510 390
+C545 392 575 408 590 430
+C600 445 620 442 622 425
+C626 395 610 360 580 340
+C545 315 490 300 430 292
+C360 282 285 278 230 282
+C215 283 208 275 210 270Z
+M295 275
+C292 225 290 175 298 140
+C302 125 318 122 328 135
+C340 155 358 145 375 125
+C395 100 420 80 445 70
+C458 64 468 78 456 88
+C435 105 412 128 395 150
+C378 172 360 188 348 180
+C338 210 332 245 335 275
+C336 290 312 295 295 275Z
+"/>
+  <g fill="#a1a1aa">
+    <rect x="425" y="55" width="50" height="14" rx="3"/>
+    <rect x="415" y="47" width="12" height="30" rx="2" fill="#d4d4d8"/>
+    <rect x="463" y="47" width="12" height="30" rx="2" fill="#d4d4d8"/>
   </g>
-  <text x="400" y="50" text-anchor="middle" fill="#f97316" font-family="system-ui,sans-serif" font-size="14" font-weight="600">upper arms locked vertical</text>
-  <circle cx="390" cy="220" r="7" fill="#f97316"/>
-  <text x="280" y="200" text-anchor="end" fill="#f97316" font-family="system-ui,sans-serif" font-size="13" font-weight="600">hinge at elbows only</text>
-  <line x1="300" y1="205" x2="375" y2="218" stroke="#f97316" stroke-width="2" marker-end="url(#arr)"/>
-  <text x="560" y="250" fill="#f97316" font-family="system-ui,sans-serif" font-size="13" font-weight="600">control the weight</text>
-  <text x="220" y="500" text-anchor="middle" fill="#f97316" font-family="system-ui,sans-serif" font-size="13" font-weight="600">back flat on bench</text>
+  <path fill="none" stroke="#a1a1aa" stroke-width="1.15" opacity="0.5" d="M220 280 C320 275 430 282 540 305"/>
+  <line x1="310" y1="275" x2="310" y2="145" stroke="#f97316" stroke-width="2" stroke-dasharray="6 5"/>
+  <circle cx="310" cy="165" r="7" fill="#f97316"/>
+  <text x="450" y="115" text-anchor="middle" fill="#f97316" font-family="system-ui,sans-serif" font-size="14" font-weight="600">upper arms stay vertical</text>
+  <text x="145" y="165" text-anchor="middle" fill="#f97316" font-family="system-ui,sans-serif" font-size="13" font-weight="600">hinge elbows only</text>
+  <path d="M195 170 L290 165" stroke="#f97316" stroke-width="2" fill="none" marker-end="url(#arr)"/>
+  <text x="450" y="370" text-anchor="middle" fill="#f97316" font-family="system-ui,sans-serif" font-size="13" font-weight="600">back flat on bench</text>
+  <text x="250" y="65" text-anchor="middle" fill="#f97316" font-family="system-ui,sans-serif" font-size="13" font-weight="600">weight toward forehead</text>
 
 </svg>

@@ -1,50 +1,48 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" role="img" aria-label="Proper form for Sit-ups">
   <rect width="800" height="600" fill="#18181b"/>
-  <text x="400" y="44" text-anchor="middle" fill="#a1a1aa" font-family="system-ui,sans-serif" font-size="22" font-weight="600">Sit-ups — proper form</text>
+  <text x="400" y="42" text-anchor="middle" fill="#a1a1aa" font-family="system-ui,sans-serif" font-size="22" font-weight="600">Sit-ups — proper form</text>
   <defs>
     <marker id="arr" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
       <path d="M0,0 L8,3 L0,6 Z" fill="#f97316"/>
     </marker>
   </defs>
 
-  <line x1="60" y1="480" x2="740" y2="480" stroke="#3f3f46" stroke-width="3"/>
-  <g fill="#e4e4e7">
-    <!-- seated crunch position: torso up, knees bent -->
-    <ellipse cx="280" cy="220" rx="28" ry="32"/>
-    <path d="M270 250
-      C285 245 310 250 325 270
-      L370 340
-      C385 365 400 390 410 415
-      L450 470
-      C458 485 445 498 430 490
-      L390 465
-      C370 450 355 430 345 410
-      L320 370
-      C310 385 305 405 310 430
-      L320 470
-      C325 485 310 495 295 488
-      L270 470
-      C255 455 250 430 255 405
-      L265 360
-      C270 335 275 310 275 290
-      L250 300
-      C220 315 185 330 155 340
-      L120 355
-      C105 362 98 345 110 335
-      L150 310
-      C185 285 225 265 255 255
-      L270 250 Z
-      M295 255
-      C320 240 350 220 370 195
-      L390 170
-      C400 155 385 142 372 152
-      L350 175
-      C330 200 310 225 295 245 Z"/>
-  </g>
-  <text x="400" y="90" text-anchor="middle" fill="#f97316" font-family="system-ui,sans-serif" font-size="14" font-weight="600">curl up — chin off chest</text>
-  <path d="M280 200 Q320 160 380 145" stroke="#f97316" stroke-width="2.5" fill="none" marker-end="url(#arr)"/>
-  <circle cx="340" cy="380" r="7" fill="#f97316"/>
-  <text x="480" y="375" fill="#f97316" font-family="system-ui,sans-serif" font-size="13" font-weight="600">feet anchored · knees bent</text>
-  <text x="200" y="400" text-anchor="middle" fill="#f97316" font-family="system-ui,sans-serif" font-size="13" font-weight="600">engage core</text>
+  <line x1="50" y1="480" x2="750" y2="480" stroke="#3f3f46" stroke-width="3"/>
+  <path fill="#d4d4d8" stroke="#a1a1aa" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" d="
+M248 168
+C230 163 216 178 220 196
+C224 214 242 226 260 218
+C278 210 286 190 278 174
+C273 162 260 163 248 168Z
+M255 215
+C285 208 318 230 345 270
+C375 320 405 375 420 420
+C455 448 510 458 560 455
+C585 453 615 462 630 475
+C640 485 630 498 610 495
+C570 488 525 485 490 468
+C465 455 448 438 438 420
+C420 440 390 458 355 460
+C325 462 305 445 302 415
+C298 380 310 340 330 310
+C305 285 275 265 245 258
+C215 250 180 265 150 285
+C125 302 95 318 75 328
+C60 336 52 318 68 308
+C100 285 145 255 190 240
+C220 228 240 220 255 215Z
+M268 228
+C295 210 330 180 350 155
+C360 142 345 132 333 142
+C312 160 285 195 268 220
+C262 228 262 232 268 228Z
+"/>
+  <path fill="none" stroke="#a1a1aa" stroke-width="1.15" opacity="0.5" d="M280 245 C325 290 370 345 400 395"/>
+  <text x="400" y="85" text-anchor="middle" fill="#f97316" font-family="system-ui,sans-serif" font-size="14" font-weight="600">curl up — chin off chest</text>
+  <path d="M248 150 Q320 105 400 125" stroke="#f97316" stroke-width="2.5" fill="none" marker-end="url(#arr)"/>
+  <circle cx="355" cy="380" r="7" fill="#f97316"/>
+  <text x="200" y="380" text-anchor="middle" fill="#f97316" font-family="system-ui,sans-serif" font-size="13" font-weight="600">engage core</text>
+  <circle cx="560" cy="460" r="7" fill="#f97316"/>
+  <text x="520" y="530" text-anchor="middle" fill="#f97316" font-family="system-ui,sans-serif" font-size="13" font-weight="600">feet flat · knees bent</text>
 
 </svg>
