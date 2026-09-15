@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" role="img" aria-label="Proper form for Squats">
+  <rect width="800" height="600" fill="#18181b"/>
+  <text x="400" y="44" text-anchor="middle" fill="#a1a1aa" font-family="system-ui,sans-serif" font-size="22" font-weight="600">Squats — proper form</text>
+  <defs>
+    <marker id="arr" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#f97316"/>
+    </marker>
+  </defs>
+
+  <line x1="60" y1="530" x2="740" y2="530" stroke="#3f3f46" stroke-width="3"/>
+  <g fill="#e4e4e7">
+    <ellipse cx="400" cy="145" rx="30" ry="34"/>
+    <path d="M380 175
+      C395 168 420 170 430 185
+      L450 250
+      C458 275 455 300 445 320
+      L480 355
+      C510 385 535 430 545 485
+      L550 520
+      C553 535 535 542 525 528
+      L505 485
+      C490 440 465 400 440 375
+      L410 350
+      C400 365 390 365 380 350
+      L350 375
+      C325 400 300 440 285 485
+      L265 528
+      C255 542 237 535 240 520
+      L245 485
+      C255 430 280 385 310 355
+      L345 320
+      C335 300 332 275 340 250
+      L360 185
+      C365 175 372 172 380 175 Z
+      M430 210
+      C460 225 495 245 520 265
+      L545 285
+      C558 295 550 315 535 308
+      L505 285
+      C480 265 455 245 435 230 Z
+      M370 210
+      C340 225 305 245 280 265
+      L255 285
+      C242 295 250 315 265 308
+      L295 285
+      C320 265 345 245 365 230 Z"/>
+  </g>
+  <text x="400" y="90" text-anchor="middle" fill="#f97316" font-family="system-ui,sans-serif" font-size="14" font-weight="600">chest proud</text>
+  <line x1="400" y1="100" x2="400" y2="125" stroke="#f97316" stroke-width="2"/>
+  <text x="200" y="320" text-anchor="middle" fill="#f97316" font-family="system-ui,sans-serif" font-size="14" font-weight="600">hips back &amp; down</text>
+  <path d="M280 330 L340 345" stroke="#f97316" stroke-width="2" marker-end="url(#arr)"/>
+  <line x1="265" y1="480" x2="265" y2="400" stroke="#f97316" stroke-width="2" stroke-dasharray="5 4"/>
+  <line x1="535" y1="480" x2="535" y2="400" stroke="#f97316" stroke-width="2" stroke-dasharray="5 4"/>
+  <text x="400" y="565" text-anchor="middle" fill="#f97316" font-family="system-ui,sans-serif" font-size="14" font-weight="600">knees track over toes · heels planted</text>
+
+</svg>

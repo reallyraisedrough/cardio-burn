@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" role="img" aria-label="Proper form for Burpees">
+  <rect width="800" height="600" fill="#18181b"/>
+  <text x="400" y="44" text-anchor="middle" fill="#a1a1aa" font-family="system-ui,sans-serif" font-size="22" font-weight="600">Burpees — proper form</text>
+  <defs>
+    <marker id="arr" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#f97316"/>
+    </marker>
+  </defs>
+
+  <line x1="40" y1="530" x2="760" y2="530" stroke="#3f3f46" stroke-width="3"/>
+  <text x="120" y="78" text-anchor="middle" fill="#f97316" font-family="system-ui,sans-serif" font-size="13" font-weight="600">1. squat</text>
+  <text x="310" y="78" text-anchor="middle" fill="#f97316" font-family="system-ui,sans-serif" font-size="13" font-weight="600">2. plank</text>
+  <text x="500" y="78" text-anchor="middle" fill="#f97316" font-family="system-ui,sans-serif" font-size="13" font-weight="600">3. jump in</text>
+  <text x="670" y="78" text-anchor="middle" fill="#f97316" font-family="system-ui,sans-serif" font-size="13" font-weight="600">4. jump up</text>
+  <!-- 1 squat silhouette -->
+  <g fill="#e4e4e7" transform="translate(120,0)">
+    <ellipse cx="0" cy="250" rx="22" ry="25"/>
+    <path d="M-8 272 C-18 290 -28 310 -35 335 L-48 380 C-52 395 -40 405 -28 398 L-10 370 C-2 355 5 345 12 340
+      L25 365 C30 380 28 400 22 420 L15 460 C12 475 25 485 38 478 L55 465 C65 455 62 440 58 425 L50 385 C45 360 40 340 38 325
+      L55 350 C65 365 80 375 95 380 C108 385 118 372 110 360 L85 335 C70 320 55 300 45 280 L30 275 C20 272 8 270 -8 272 Z
+      M8 275 C25 285 40 295 48 310 L55 330 C60 342 48 350 38 342 L22 320 C15 308 10 295 8 275 Z"/>
+  </g>
+  <path d="M185 320 L240 320" stroke="#f97316" stroke-width="2.5" marker-end="url(#arr)"/>
+  <!-- 2 plank silhouette -->
+  <g fill="#e4e4e7" transform="translate(250,0)">
+    <ellipse cx="20" cy="400" rx="18" ry="20"/>
+    <path d="M35 400 C55 385 90 382 130 385 L180 390 C200 393 215 400 220 415 L225 435 C228 448 215 455 205 450 L180 438
+      C160 430 140 425 120 422 L80 418 C65 430 58 460 55 490 L52 515 C50 525 38 528 30 520 L22 505 C18 492 25 470 32 450
+      L40 420 C42 410 40 402 35 400 Z"/>
+  </g>
+  <line x1="270" y1="395" x2="450" y2="395" stroke="#f97316" stroke-width="2" stroke-dasharray="8 6" opacity="0.75"/>
+  <path d="M400 340 L460 340" stroke="#f97316" stroke-width="2.5" marker-end="url(#arr)"/>
+  <!-- 3 jump-in squat -->
+  <g fill="#e4e4e7" transform="translate(500,0)">
+    <ellipse cx="0" cy="255" rx="22" ry="25"/>
+    <path d="M-6 275 C-20 295 -35 320 -42 350 L-50 395 C-54 412 -40 422 -28 412 L-12 380 C-5 360 5 348 15 342
+      L28 375 C35 400 32 430 25 460 L18 500 C15 515 30 525 42 515 L58 500 C68 488 65 470 60 455 L50 400 C45 370 40 345 35 325
+      L55 355 C68 375 90 390 110 395 C125 400 132 382 120 372 L90 350 C72 335 55 310 42 285 L20 278 C10 275 2 274 -6 275 Z"/>
+  </g>
+  <path d="M575 300 L620 280" stroke="#f97316" stroke-width="2.5" marker-end="url(#arr)"/>
+  <!-- 4 jump up -->
+  <g fill="#e4e4e7" transform="translate(670,0)">
+    <ellipse cx="0" cy="160" rx="22" ry="25"/>
+    <path d="M-5 183 C-8 200 -5 220 0 245 L5 280 C8 295 5 310 0 325 L-8 360 C-12 375 2 385 14 375 L25 350 C32 330 35 310 35 290
+      L50 320 C58 340 55 365 48 390 L42 420 C38 435 52 445 64 435 L78 420 C88 408 85 390 80 375 L70 330 C65 300 60 275 55 255
+      L70 230 C85 205 95 175 98 150 C100 135 85 128 75 138 L55 165 C45 180 38 200 32 215
+      L20 200 C10 185 0 175 -5 183 Z
+      M8 200 C25 185 45 160 55 140 C62 128 50 118 40 128 L22 155 C14 168 10 185 8 200 Z"/>
+  </g>
+  <text x="670" y="480" text-anchor="middle" fill="#f97316" font-family="system-ui,sans-serif" font-size="13" font-weight="600">soft landing</text>
+  <line x1="670" y1="420" x2="670" y2="460" stroke="#f97316" stroke-width="2" marker-end="url(#arr)"/>
+
+</svg>

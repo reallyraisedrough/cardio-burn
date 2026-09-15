@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" role="img" aria-label="Proper form for Skull-crushers">
+  <rect width="800" height="600" fill="#18181b"/>
+  <text x="400" y="44" text-anchor="middle" fill="#a1a1aa" font-family="system-ui,sans-serif" font-size="22" font-weight="600">Skull-crushers — proper form</text>
+  <defs>
+    <marker id="arr" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#f97316"/>
+    </marker>
+  </defs>
+
+  <line x1="60" y1="470" x2="740" y2="470" stroke="#3f3f46" stroke-width="3"/>
+  <!-- bench outline -->
+  <rect x="180" y="300" width="440" height="24" rx="3" fill="#52525b"/>
+  <rect x="200" y="324" width="16" height="120" fill="#3f3f46"/>
+  <rect x="584" y="324" width="16" height="120" fill="#3f3f46"/>
+  <g fill="#e4e4e7">
+    <!-- supine figure on bench, arms bent holding weight above head -->
+    <ellipse cx="220" cy="270" rx="30" ry="34"/>
+    <path d="M245 275
+      C290 265 360 268 430 275
+      L520 285
+      C555 290 580 300 590 320
+      L600 350
+      C605 365 590 375 575 368
+      L540 350
+      C510 335 470 328 430 325
+      L320 318
+      C280 315 255 320 245 340
+      L230 380
+      C222 400 235 415 255 412
+      L290 405
+      C310 400 325 385 330 365
+      L340 330
+      C350 340 370 348 395 350
+      L450 355
+      C480 358 505 365 520 380
+      L545 405
+      C555 418 575 415 578 398
+      L570 365
+      C560 335 540 315 510 305
+      L450 290
+      C400 280 340 275 290 278
+      L255 282
+      C248 278 245 275 245 275 Z"/>
+    <!-- upper arms vertical + forearms toward forehead with weight -->
+    <path d="M380 275
+      L375 200
+      C373 185 385 175 398 178
+      L410 185
+      C420 155 430 130 445 110
+      L460 90
+      C468 78 455 65 440 72
+      L415 95
+      C400 115 390 145 385 175
+      L378 185
+      C365 180 350 185 348 200
+      L345 260
+      C344 275 360 280 370 275 Z"/>
+    <!-- dumbbell -->
+    <rect x="425" y="70" width="55" height="18" rx="4" fill="#a1a1aa"/>
+    <rect x="415" y="62" width="14" height="34" rx="3" fill="#d4d4d8"/>
+    <rect x="475" y="62" width="14" height="34" rx="3" fill="#d4d4d8"/>
+  </g>
+  <text x="400" y="50" text-anchor="middle" fill="#f97316" font-family="system-ui,sans-serif" font-size="14" font-weight="600">upper arms locked vertical</text>
+  <circle cx="390" cy="220" r="7" fill="#f97316"/>
+  <text x="280" y="200" text-anchor="end" fill="#f97316" font-family="system-ui,sans-serif" font-size="13" font-weight="600">hinge at elbows only</text>
+  <line x1="300" y1="205" x2="375" y2="218" stroke="#f97316" stroke-width="2" marker-end="url(#arr)"/>
+  <text x="560" y="250" fill="#f97316" font-family="system-ui,sans-serif" font-size="13" font-weight="600">control the weight</text>
+  <text x="220" y="500" text-anchor="middle" fill="#f97316" font-family="system-ui,sans-serif" font-size="13" font-weight="600">back flat on bench</text>
+
+</svg>

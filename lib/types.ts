@@ -17,6 +17,8 @@ export interface Exercise {
   emoji: string;
   description: string;
   formCues: string[];
+  /** Path to instructional form SVG under /public */
+  formImage: string;
   /** Default target seconds per working set */
   defaultSetDurationSec: number;
   /** Primary tracking: timed countdown, or also log reps */

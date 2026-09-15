@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" role="img" aria-label="Proper form for Planks">
+  <rect width="800" height="600" fill="#18181b"/>
+  <text x="400" y="44" text-anchor="middle" fill="#a1a1aa" font-family="system-ui,sans-serif" font-size="22" font-weight="600">Planks — proper form</text>
+  <defs>
+    <marker id="arr" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#f97316"/>
+    </marker>
+  </defs>
+
+  <line x1="60" y1="485" x2="740" y2="485" stroke="#3f3f46" stroke-width="3"/>
+  <line x1="110" y1="305" x2="690" y2="305" stroke="#f97316" stroke-width="2.5" stroke-dasharray="12 8" opacity="0.7"/>
+  <g fill="#e4e4e7">
+    <ellipse cx="150" cy="290" rx="34" ry="38"/>
+    <path d="M178 285
+      C210 265 260 268 310 272
+      L480 280
+      C545 285 600 292 645 305
+      L680 320
+      C692 330 690 348 675 350
+      L630 340
+      C575 328 520 322 460 318
+      L320 312
+      C275 310 240 318 222 350
+      L205 430
+      C198 455 215 470 245 472
+      L320 475
+      C338 476 345 460 338 448
+      L325 415
+      C320 390 335 365 370 350
+      C400 338 450 332 505 332
+      L590 338
+      C615 342 630 355 632 375
+      L635 405
+      C637 420 622 428 608 422
+      L560 400
+      C520 385 475 378 430 375
+      L310 368
+      C270 365 245 380 232 415
+      L218 460
+      C212 478 188 482 170 470
+      L145 452
+      C130 440 138 412 150 385
+      L168 330
+      C172 308 175 292 178 285 Z"/>
+  </g>
+  <circle cx="210" cy="312" r="7" fill="#f97316"/>
+  <text x="210" y="245" text-anchor="middle" fill="#f97316" font-family="system-ui,sans-serif" font-size="14" font-weight="600">elbow under shoulder</text>
+  <line x1="210" y1="252" x2="210" y2="302" stroke="#f97316" stroke-width="2"/>
+  <circle cx="450" cy="300" r="7" fill="#f97316"/>
+  <text x="450" y="245" text-anchor="middle" fill="#f97316" font-family="system-ui,sans-serif" font-size="14" font-weight="600">brace core · squeeze glutes</text>
+  <text x="135" y="215" text-anchor="middle" fill="#f97316" font-family="system-ui,sans-serif" font-size="13" font-weight="600">neutral neck</text>
+  <line x1="135" y1="222" x2="150" y2="258" stroke="#f97316" stroke-width="2"/>
+
+</svg>

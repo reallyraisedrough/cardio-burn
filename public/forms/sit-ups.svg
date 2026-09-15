@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" role="img" aria-label="Proper form for Sit-ups">
+  <rect width="800" height="600" fill="#18181b"/>
+  <text x="400" y="44" text-anchor="middle" fill="#a1a1aa" font-family="system-ui,sans-serif" font-size="22" font-weight="600">Sit-ups — proper form</text>
+  <defs>
+    <marker id="arr" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#f97316"/>
+    </marker>
+  </defs>
+
+  <line x1="60" y1="480" x2="740" y2="480" stroke="#3f3f46" stroke-width="3"/>
+  <g fill="#e4e4e7">
+    <!-- seated crunch position: torso up, knees bent -->
+    <ellipse cx="280" cy="220" rx="28" ry="32"/>
+    <path d="M270 250
+      C285 245 310 250 325 270
+      L370 340
+      C385 365 400 390 410 415
+      L450 470
+      C458 485 445 498 430 490
+      L390 465
+      C370 450 355 430 345 410
+      L320 370
+      C310 385 305 405 310 430
+      L320 470
+      C325 485 310 495 295 488
+      L270 470
+      C255 455 250 430 255 405
+      L265 360
+      C270 335 275 310 275 290
+      L250 300
+      C220 315 185 330 155 340
+      L120 355
+      C105 362 98 345 110 335
+      L150 310
+      C185 285 225 265 255 255
+      L270 250 Z
+      M295 255
+      C320 240 350 220 370 195
+      L390 170
+      C400 155 385 142 372 152
+      L350 175
+      C330 200 310 225 295 245 Z"/>
+  </g>
+  <text x="400" y="90" text-anchor="middle" fill="#f97316" font-family="system-ui,sans-serif" font-size="14" font-weight="600">curl up — chin off chest</text>
+  <path d="M280 200 Q320 160 380 145" stroke="#f97316" stroke-width="2.5" fill="none" marker-end="url(#arr)"/>
+  <circle cx="340" cy="380" r="7" fill="#f97316"/>
+  <text x="480" y="375" fill="#f97316" font-family="system-ui,sans-serif" font-size="13" font-weight="600">feet anchored · knees bent</text>
+  <text x="200" y="400" text-anchor="middle" fill="#f97316" font-family="system-ui,sans-serif" font-size="13" font-weight="600">engage core</text>
+
+</svg>

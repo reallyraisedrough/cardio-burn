@@ -11,6 +11,15 @@ import { notifySetComplete } from "@/lib/audio";
 import { formatMs, uid } from "@/lib/format";
 import type { SetResult, WorkoutGoal } from "@/lib/types";
 import { Disclaimer } from "./Disclaimer";
+import {
+  CoachBot,
+  CountdownSelector,
+  loadCountdownPref,
+  loadMutePref,
+  speakDrive,
+  type CoachCommand,
+  type CountdownSec,
+} from "./CoachBot";
 
 type Phase = "loading" | "ready" | "active" | "summary";
 
@@ -26,6 +35,19 @@ export function WorkoutClient({ exercise }: { exercise: Exercise }) {
   const [startedAt, setStartedAt] = useState<string>("");
   const timerRef = useRef<ReturnType<typeof createTimer> | null>(null);
   const alarmFired = useRef(false);
+
+  const [countdownSec, setCountdownSec] = useState<CountdownSec>(10);
+  const [muted, setMuted] = useState(false);
+  const [preCount, setPreCount] = useState<number | null>(null);
+  const [showGo, setShowGo] = useState(false);
+  const [announce, setAnnounce] = useState<string | null>(null);
+  const countdownBusy = useRef(false);
+  const pendingStart = useRef(false);
+
+  useEffect(() => {
+    setCountdownSec(loadCountdownPref());
+    setMuted(loadMutePref());
+  }, []);
 
   const totalSets = useMemo(() => {
     if (!goal) return 5;
@@ -79,6 +101,7 @@ export function WorkoutClient({ exercise }: { exercise: Exercise }) {
               "Set complete",
               `${exercise.name} — target time reached`
             );
+            setAnnounce("Time. Rest.");
           }
         }
       );
@@ -88,7 +111,31 @@ export function WorkoutClient({ exercise }: { exercise: Exercise }) {
     [exercise.name]
   );
 
-  const beginWorkout = () => {
+  const runPreCountdown = useCallback(
+    async (thenStart: boolean) => {
+      if (countdownBusy.current) return;
+      countdownBusy.current = true;
+      pendingStart.current = thenStart;
+      const total = countdownSec;
+      for (let n = total; n >= 1; n--) {
+        setPreCount(n);
+        speakDrive(String(n), muted, { rate: 1.05, pitch: 0.85 });
+        await new Promise((r) => setTimeout(r, 1000));
+      }
+      setPreCount(null);
+      setShowGo(true);
+      speakDrive("GO", muted, { rate: 1.05, pitch: 0.88 });
+      await new Promise((r) => setTimeout(r, 700));
+      setShowGo(false);
+      if (pendingStart.current) {
+        timerRef.current?.start();
+      }
+      countdownBusy.current = false;
+    },
+    [countdownSec, muted]
+  );
+
+  const beginWorkout = useCallback(() => {
     if (!goal) return;
     setStartedAt(new Date().toISOString());
     setSets([]);
@@ -96,10 +143,13 @@ export function WorkoutClient({ exercise }: { exercise: Exercise }) {
     setReps(exercise.defaultReps ?? 10);
     setPhase("active");
     setupTimer(false, goal.targetSecPerSet * 1000);
-  };
+    setAnnounce("Let's go.");
+    void runPreCountdown(true);
+  }, [goal, exercise.defaultReps, setupTimer, runPreCountdown]);
 
-  const finishSet = () => {
+  const finishSet = useCallback(() => {
     if (!goal || !timerSnap) return;
+    if (countdownBusy.current) return;
     timerRef.current?.pause();
     const burnout = setIndex >= goal.workingSets;
     const recordedMs = Math.round(timerSnap.elapsedMs);
@@ -121,6 +171,7 @@ export function WorkoutClient({ exercise }: { exercise: Exercise }) {
       teardownTimer();
       const ok = evaluateGoal(goal, nextSets);
       setMetGoal(ok);
+      setAnnounce(ok ? "Goal crushed." : "Session complete.");
       setPhase("summary");
       return;
     }
@@ -132,7 +183,23 @@ export function WorkoutClient({ exercise }: { exercise: Exercise }) {
       nextBurnout,
       nextBurnout ? 0 : goal.targetSecPerSet * 1000
     );
-  };
+    if (nextBurnout) {
+      setAnnounce("Burnout — empty the tank.");
+    } else {
+      setAnnounce("One more. Push through.");
+    }
+    void runPreCountdown(true);
+  }, [
+    goal,
+    timerSnap,
+    setIndex,
+    sets,
+    totalSets,
+    exercise,
+    reps,
+    setupTimer,
+    runPreCountdown,
+  ]);
 
   const saveAndDone = async () => {
     if (!goal) return;
@@ -156,6 +223,40 @@ export function WorkoutClient({ exercise }: { exercise: Exercise }) {
     await saveSession(session);
     router.push("/progress");
   };
+
+  const handleCoachCommand = useCallback(
+    (cmd: CoachCommand) => {
+      if (phase !== "active") {
+        if (cmd === "start" && phase === "ready") beginWorkout();
+        return;
+      }
+      switch (cmd) {
+        case "start":
+        case "resume":
+          if (!timerSnap?.running && !countdownBusy.current) {
+            void runPreCountdown(true);
+          } else if (!timerSnap?.running) {
+            timerRef.current?.start();
+          }
+          break;
+        case "pause":
+          timerRef.current?.pause();
+          setAnnounce("Hold. Breathe.");
+          break;
+        case "reset":
+          alarmFired.current = false;
+          timerRef.current?.reset();
+          setAnnounce("Reset. Ready.");
+          break;
+        case "done":
+        case "next":
+        case "skip":
+          finishSet();
+          break;
+      }
+    },
+    [phase, timerSnap, runPreCountdown, finishSet, beginWorkout]
+  );
 
   if (phase === "loading" || !goal) {
     return (
@@ -187,6 +288,24 @@ export function WorkoutClient({ exercise }: { exercise: Exercise }) {
             . Target {goal.targetSecPerSet}s per working set.
           </p>
         </div>
+
+        <CountdownSelector
+          className="mt-6"
+          value={countdownSec}
+          onChange={setCountdownSec}
+        />
+
+        <div className="mt-4">
+          <CoachBot
+            active={false}
+            muted={muted}
+            onMuteChange={setMuted}
+            onCommand={handleCoachCommand}
+            announce={announce}
+            onAnnounceConsumed={() => setAnnounce(null)}
+          />
+        </div>
+
         <button
           type="button"
           onClick={beginWorkout}
@@ -263,11 +382,20 @@ export function WorkoutClient({ exercise }: { exercise: Exercise }) {
     : formatMs(timerSnap?.remainingMs ?? targetMs);
 
   return (
-    <div
-      className={`mx-auto flex min-h-screen max-w-lg flex-col px-4 py-6 ${
-        isBurnout ? "bg-zinc-950" : "bg-zinc-950"
-      }`}
-    >
+    <div className="relative mx-auto flex min-h-screen max-w-lg flex-col px-4 py-6 bg-zinc-950">
+      {/* Big GO / countdown overlay */}
+      {(preCount !== null || showGo) && (
+        <div className="pointer-events-none absolute inset-0 z-40 flex items-center justify-center bg-zinc-950/70">
+          <p
+            className={`font-black tabular-nums text-orange-500 drop-shadow-[0_0_40px_rgba(249,115,22,0.6)] ${
+              showGo ? "text-8xl animate-pulse" : "text-9xl"
+            }`}
+          >
+            {showGo ? "GO" : preCount}
+          </p>
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <Link
           href={`/exercise/${exercise.slug}`}
@@ -281,8 +409,25 @@ export function WorkoutClient({ exercise }: { exercise: Exercise }) {
         </p>
       </div>
 
+      <div className="mt-4">
+        <CoachBot
+          active
+          muted={muted}
+          onMuteChange={setMuted}
+          onCommand={handleCoachCommand}
+          announce={announce}
+          onAnnounceConsumed={() => setAnnounce(null)}
+        />
+      </div>
+
+      <CountdownSelector
+        className="mt-4"
+        value={countdownSec}
+        onChange={setCountdownSec}
+      />
+
       <div
-        className={`mt-6 rounded-2xl border p-5 ${
+        className={`mt-4 rounded-2xl border p-5 ${
           isBurnout
             ? "border-red-500 bg-red-950/40 shadow-[0_0_40px_rgba(239,68,68,0.25)]"
             : "border-zinc-800 bg-zinc-900"
@@ -312,7 +457,11 @@ export function WorkoutClient({ exercise }: { exercise: Exercise }) {
       <div className="mt-6 grid grid-cols-3 gap-3">
         <button
           type="button"
-          onClick={() => timerRef.current?.start()}
+          onClick={() => {
+            if (countdownBusy.current) return;
+            if (!timerSnap?.running) void runPreCountdown(true);
+            else timerRef.current?.start();
+          }}
           className="flex min-h-[56px] items-center justify-center rounded-xl bg-emerald-600 font-bold text-white active:scale-[0.97]"
         >
           Start

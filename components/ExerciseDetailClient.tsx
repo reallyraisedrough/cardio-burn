@@ -45,6 +45,17 @@ export function ExerciseDetailClient({ exercise }: { exercise: Exercise }) {
         </div>
       </div>
 
+      <div className="mt-8 overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={exercise.formImage}
+          alt={`Proper form for ${exercise.name}`}
+          className="h-auto w-full"
+          width={800}
+          height={600}
+        />
+      </div>
+
       <section className="mt-8">
         <h2 className="text-sm font-bold uppercase tracking-wider text-orange-400">
           Form cues

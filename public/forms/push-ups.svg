@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" role="img" aria-label="Proper form for Push-ups">
+  <rect width="800" height="600" fill="#18181b"/>
+  <text x="400" y="44" text-anchor="middle" fill="#a1a1aa" font-family="system-ui,sans-serif" font-size="22" font-weight="600">Push-ups — proper form</text>
+  <defs>
+    <marker id="arr" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#f97316"/>
+    </marker>
+  </defs>
+
+  <line x1="60" y1="500" x2="740" y2="500" stroke="#3f3f46" stroke-width="3"/>
+  <line x1="120" y1="320" x2="680" y2="320" stroke="#f97316" stroke-width="2.5" stroke-dasharray="12 8" opacity="0.7"/>
+  <g fill="#e4e4e7">
+    <ellipse cx="145" cy="300" rx="32" ry="36"/>
+    <path d="M172 295
+      C210 275 270 278 340 285
+      L480 295
+      C545 300 600 310 645 325
+      L680 340
+      C692 350 688 368 672 368
+      L625 355
+      C575 342 520 335 460 330
+      L340 322
+      C290 318 250 325 225 355
+      L200 420
+      C192 450 210 470 245 472
+      L290 475
+      C308 476 315 458 308 445
+      L295 410
+      C290 385 305 360 340 348
+      C380 335 440 330 500 332
+      L580 340
+      C610 345 635 360 640 385
+      L645 420
+      C648 438 630 448 615 438
+      L575 410
+      C545 390 500 380 455 375
+      L340 368
+      C295 364 260 375 240 410
+      L220 460
+      C212 480 185 485 165 470
+      L140 450
+      C125 438 132 410 145 380
+      L165 330
+      C168 310 170 298 172 295 Z"/>
+  </g>
+  <circle cx="220" cy="325" r="7" fill="#f97316"/>
+  <text x="220" y="250" text-anchor="middle" fill="#f97316" font-family="system-ui,sans-serif" font-size="14" font-weight="600">hands under shoulders</text>
+  <line x1="220" y1="258" x2="220" y2="315" stroke="#f97316" stroke-width="2"/>
+  <circle cx="460" cy="310" r="7" fill="#f97316"/>
+  <text x="460" y="250" text-anchor="middle" fill="#f97316" font-family="system-ui,sans-serif" font-size="14" font-weight="600">rigid body line</text>
+  <text x="130" y="220" text-anchor="middle" fill="#f97316" font-family="system-ui,sans-serif" font-size="13" font-weight="600">neutral neck</text>
+
+</svg>

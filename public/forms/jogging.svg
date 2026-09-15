@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" role="img" aria-label="Proper form for Jogging">
+  <rect width="800" height="600" fill="#18181b"/>
+  <text x="400" y="44" text-anchor="middle" fill="#a1a1aa" font-family="system-ui,sans-serif" font-size="22" font-weight="600">Jogging — proper form</text>
+  <defs>
+    <marker id="arr" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#f97316"/>
+    </marker>
+  </defs>
+
+  <line x1="60" y1="530" x2="740" y2="530" stroke="#3f3f46" stroke-width="3"/>
+  <line x1="350" y1="110" x2="480" y2="510" stroke="#f97316" stroke-width="2" stroke-dasharray="10 7" opacity="0.65"/>
+  <g fill="#e4e4e7">
+    <ellipse cx="390" cy="145" rx="30" ry="34"/>
+    <path d="M375 175
+      C390 170 415 175 425 195
+      L450 275
+      C458 300 455 325 445 345
+      C430 370 400 405 365 450
+      L345 495
+      C338 512 355 525 372 515
+      L400 500
+      C412 492 415 475 408 460
+      L385 410
+      C375 385 395 355 420 340
+      L470 385
+      C490 410 515 450 535 495
+      L550 525
+      C558 538 578 535 580 518
+      L575 490
+      C570 465 550 430 530 400
+      L485 340
+      C470 315 460 290 455 270
+      L470 230
+      C490 195 520 165 545 140
+      L565 118
+      C575 105 560 92 545 100
+      L515 125
+      C490 150 470 180 455 210
+      L440 235
+      C415 255 380 275 345 295
+      L310 315
+      C295 325 282 312 290 298
+      L315 265
+      C345 235 365 205 375 175 Z"/>
+  </g>
+  <text x="400" y="90" text-anchor="middle" fill="#f97316" font-family="system-ui,sans-serif" font-size="14" font-weight="600">relaxed shoulders · natural arm swing</text>
+  <text x="580" y="200" fill="#f97316" font-family="system-ui,sans-serif" font-size="14" font-weight="600">slight lean from ankles</text>
+  <circle cx="360" cy="510" r="8" fill="#f97316"/>
+  <text x="280" y="505" text-anchor="end" fill="#f97316" font-family="system-ui,sans-serif" font-size="14" font-weight="600">midfoot land</text>
+
+</svg>
