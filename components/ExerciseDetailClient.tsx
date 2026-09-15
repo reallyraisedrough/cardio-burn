@@ -45,12 +45,12 @@ export function ExerciseDetailClient({ exercise }: { exercise: Exercise }) {
         </div>
       </div>
 
-      <div className="mt-8 overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900">
+      <div className="mt-8 overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={exercise.formImage}
           alt={`Proper form for ${exercise.name}`}
-          className="h-auto w-full"
+          className="mx-auto h-auto max-h-[420px] w-full object-contain object-center sm:max-h-[480px]"
           width={800}
           height={600}
         />

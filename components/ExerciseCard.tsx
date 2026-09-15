@@ -26,12 +26,12 @@ export function ExerciseCard({ exercise, last, goalLabel }: Props) {
       className="block rounded-2xl border border-zinc-800 bg-zinc-900/80 p-4 transition active:scale-[0.98] hover:border-orange-500/50 hover:bg-zinc-900"
     >
       <div className="flex items-start gap-3">
-        <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-zinc-700 bg-zinc-800">
+        <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-zinc-700 bg-zinc-950">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={exercise.formImage}
             alt={`Proper form for ${exercise.name}`}
-            className="h-full w-full object-cover"
+            className="h-full w-full object-cover object-center"
             width={56}
             height={56}
           />
