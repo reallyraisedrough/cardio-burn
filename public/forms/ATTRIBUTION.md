@@ -22,3 +22,10 @@ Downloaded from Wikimedia Commons (not hotlinked).
 - **squats**: Wall / stability-ball squat side view (clear depth and torso posture). Not a free-standing air squat.
 - **dips**: Outdoor bench/rock triceps dips (matches home chair-dip cues better than parallel-bar dips).
 - **skull-crushers**: True photo of lying dumbbell triceps extensions (skull crushers), two-panel start/end — lower resolution (~640×384) than the others; best free Commons photo found for this movement.
+
+## Upgrades (v6) — Pexels / Unsplash only for 3 mismatches
+| Slug | Source | License | Notes |
+|------|--------|---------|-------|
+| planks | https://www.pexels.com/photo/woman-planking-on-a-yoga-mat-6193550/ (ROMAN ODINTSOV) | Pexels License | Forearm plank |
+| burpees | https://www.pexels.com/photo/female-athlete-performing-burpee-in-studio-setting-30246184/ (Andrea Musto) | Pexels License | Mid-burpee |
+| squats | https://unsplash.com/photos/a-woman-squatting-on-the-ground-with-her-hands-clasped-z1uWXbhI1R0 (SUNDAY II SUNDAY) | Unsplash License | Free-standing air squat |
