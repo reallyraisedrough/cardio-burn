@@ -20,6 +20,8 @@ export function ExerciseCard({ exercise, last, goalLabel }: Props) {
       )} · ${formatDate(last.completedAt)}`
     : "No sessions yet — starter goal ready";
 
+  const thumb = exercise.formExecImage || exercise.formImage;
+
   return (
     <Link
       href={`/exercise/${exercise.slug}`}
@@ -29,7 +31,7 @@ export function ExerciseCard({ exercise, last, goalLabel }: Props) {
         <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-zinc-700 bg-zinc-950">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={exercise.formImage}
+            src={thumb}
             alt={`Proper form for ${exercise.name}`}
             className="h-full w-full object-cover object-center"
             width={56}

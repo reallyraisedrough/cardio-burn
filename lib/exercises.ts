@@ -1,6 +1,16 @@
 import type { Exercise, ExerciseSlug } from "./types";
 export type { Exercise, ExerciseSlug } from "./types";
 
+const V = "7";
+
+function formPaths(slug: ExerciseSlug) {
+  return {
+    formStartImage: `/forms/${slug}-start.jpg?v=${V}`,
+    formExecImage: `/forms/${slug}-exec.jpg?v=${V}`,
+    formImage: `/forms/${slug}-exec.jpg?v=${V}`,
+  };
+}
+
 export const EXERCISES: Exercise[] = [
   {
     slug: "planks",
@@ -14,7 +24,7 @@ export const EXERCISES: Exercise[] = [
       "Keep neck neutral — gaze slightly ahead of your hands.",
       "Breathe steadily; don't hold your breath.",
     ],
-    formImage: "/forms/planks.jpg?v=6",
+    ...formPaths("planks"),
     defaultSetDurationSec: 40,
     tracking: "timed",
   },
@@ -31,7 +41,7 @@ export const EXERCISES: Exercise[] = [
       "Explode up with a soft landing.",
       "Keep a smooth rhythm — quality over frantic speed.",
     ],
-    formImage: "/forms/burpees.jpg?v=6",
+    ...formPaths("burpees"),
     defaultSetDurationSec: 45,
     tracking: "reps",
     defaultReps: 10,
@@ -48,7 +58,7 @@ export const EXERCISES: Exercise[] = [
       "Breathe in a comfortable rhythmic pattern.",
       "Maintain an easy conversational pace for working sets.",
     ],
-    formImage: "/forms/jogging.jpg?v=5",
+    ...formPaths("jogging"),
     defaultSetDurationSec: 90,
     tracking: "timed",
   },
@@ -64,7 +74,7 @@ export const EXERCISES: Exercise[] = [
       "Press up by driving through your palms.",
       "Stay tall through the chest; avoid shrugging.",
     ],
-    formImage: "/forms/dips.jpg?v=5",
+    ...formPaths("dips"),
     defaultSetDurationSec: 40,
     tracking: "reps",
     defaultReps: 12,
@@ -82,7 +92,7 @@ export const EXERCISES: Exercise[] = [
       "Keep torso upright and core braced.",
       "Alternate legs or finish one side then the other.",
     ],
-    formImage: "/forms/lunges.jpg?v=5",
+    ...formPaths("lunges"),
     defaultSetDurationSec: 45,
     tracking: "reps",
     defaultReps: 16,
@@ -99,7 +109,7 @@ export const EXERCISES: Exercise[] = [
       "Knees track in line with toes.",
       "Stand by driving through midfoot and squeezing glutes.",
     ],
-    formImage: "/forms/squats.jpg?v=6",
+    ...formPaths("squats"),
     defaultSetDurationSec: 45,
     tracking: "reps",
     defaultReps: 15,
@@ -116,7 +126,7 @@ export const EXERCISES: Exercise[] = [
       "Press up without sagging hips or piked butt.",
       "Modify on knees if needed — keep the same line.",
     ],
-    formImage: "/forms/push-ups.jpg?v=5",
+    ...formPaths("push-ups"),
     defaultSetDurationSec: 40,
     tracking: "reps",
     defaultReps: 12,
@@ -133,7 +143,7 @@ export const EXERCISES: Exercise[] = [
       "Exhale on the way up; inhale on the way down.",
       "Control the descent — no collapsing.",
     ],
-    formImage: "/forms/sit-ups.jpg?v=5",
+    ...formPaths("sit-ups"),
     defaultSetDurationSec: 40,
     tracking: "reps",
     defaultReps: 15,
@@ -150,7 +160,7 @@ export const EXERCISES: Exercise[] = [
       "Extend elbows to lock out without slamming.",
       "Use a weight you can control for every rep.",
     ],
-    formImage: "/forms/skull-crushers.jpg?v=5",
+    ...formPaths("skull-crushers"),
     defaultSetDurationSec: 40,
     tracking: "reps",
     defaultReps: 12,
@@ -163,6 +173,20 @@ export function getExercise(slug: string): Exercise | undefined {
 
 export function isValidSlug(slug: string): slug is ExerciseSlug {
   return EXERCISES.some((e) => e.slug === slug);
+}
+
+/** Build a tight one-way coaching script from form cues + benefits framing. */
+export function buildFormCoachScript(exercise: Exercise): string {
+  const cues = exercise.formCues.join(" ");
+  return (
+    `This move torches calories, builds strength, and builds your engine. ` +
+    `Here's perfect form for ${exercise.name}. ` +
+    `Setup and start: get into position and lock your stance. ` +
+    `${cues} ` +
+    `Breathe with the movement — never hold your breath. ` +
+    `Common mistakes: rushing the reps, losing a tight midline, and cutting range short. ` +
+    `Own every rep.`
+  );
 }
 
 export const DISCLAIMER =

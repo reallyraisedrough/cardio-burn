@@ -17,7 +17,11 @@ export interface Exercise {
   emoji: string;
   description: string;
   formCues: string[];
-  /** Path to instructional form SVG under /public */
+  /** Starting / setup pose (whole-body preferred) */
+  formStartImage: string;
+  /** Execution / mid-rep pose (whole-body preferred) */
+  formExecImage: string;
+  /** Legacy / card thumbnail — usually same as formExecImage */
   formImage: string;
   /** Default target seconds per working set */
   defaultSetDurationSec: number;

@@ -22,6 +22,7 @@ export type CoachCommand =
 
 const MUTE_KEY = "cardio-burner-coach-mute";
 const COUNTDOWN_KEY = "cardio-burner-countdown-sec";
+const EXPLAIN_FORM_KEY = "cardio-burner-explain-form";
 
 const DRIVE_LINES = [
   "Let's go.",
@@ -70,7 +71,6 @@ function pickVoice(): SpeechSynthesisVoice | null {
       v.name
     )
   );
-  // Prefer lower-sounding / male-coded English voices when available
   return preferred || pool.find((v) => /en-US|en-GB/i.test(v.lang)) || pool[0];
 }
 
@@ -84,6 +84,19 @@ export function loadCountdownPref(): CountdownSec {
 export function loadMutePref(): boolean {
   if (typeof window === "undefined") return false;
   return localStorage.getItem(MUTE_KEY) === "1";
+}
+
+export function loadExplainFormPref(): boolean {
+  if (typeof window === "undefined") return false;
+  return localStorage.getItem(EXPLAIN_FORM_KEY) === "1";
+}
+
+export function saveExplainFormPref(on: boolean) {
+  try {
+    localStorage.setItem(EXPLAIN_FORM_KEY, on ? "1" : "0");
+  } catch {
+    /* ignore */
+  }
 }
 
 export function CountdownSelector({
@@ -127,6 +140,43 @@ export function CountdownSelector({
   );
 }
 
+export function ExplainFormToggle({
+  value,
+  onChange,
+  className = "",
+}: {
+  value: boolean;
+  onChange: (v: boolean) => void;
+  className?: string;
+}) {
+  return (
+    <div className={className}>
+      <button
+        type="button"
+        onClick={() => {
+          const next = !value;
+          onChange(next);
+          saveExplainFormPref(next);
+        }}
+        aria-pressed={value}
+        className={`flex min-h-[44px] w-full items-center justify-between rounded-xl border px-4 text-sm font-semibold transition-colors ${
+          value
+            ? "border-orange-500/60 bg-orange-500/15 text-orange-300"
+            : "border-zinc-700 bg-zinc-900 text-zinc-300 hover:bg-zinc-800"
+        }`}
+      >
+        <span>Explain form</span>
+        <span className="text-xs font-bold uppercase tracking-wider">
+          {value ? "On" : "Off"}
+        </span>
+      </button>
+      <p className="mt-1.5 text-[11px] text-zinc-600">
+        When on, coach speaks a form brief before Begin countdown.
+      </p>
+    </div>
+  );
+}
+
 type CoachBotProps = {
   /** When true, mic listens for voice commands */
   active: boolean;
@@ -161,7 +211,7 @@ export function CoachBot({
 
   const speak = useCallback(
     (text: string, opts?: { rate?: number; pitch?: number }) => {
-      pushCallout(text);
+      pushCallout(text.length > 90 ? `${text.slice(0, 87)}…` : text);
       if (muted) return;
       if (typeof window === "undefined" || !window.speechSynthesis) return;
       try {
@@ -179,7 +229,6 @@ export function CoachBot({
     [muted, pushCallout]
   );
 
-  // Load voices
   useEffect(() => {
     if (typeof window === "undefined" || !window.speechSynthesis) return;
     const assign = () => {
@@ -192,21 +241,18 @@ export function CoachBot({
     };
   }, []);
 
-  // Consume external announcements
   useEffect(() => {
     if (!announce) return;
     speak(announce, { rate: 0.98, pitch: 0.88 });
     onAnnounceConsumed?.();
   }, [announce, speak, onAnnounceConsumed]);
 
-  // Motivational ticker while active (visual + occasional TTS)
   useEffect(() => {
     if (!active) return;
     let i = 0;
     const id = window.setInterval(() => {
       const line = DRIVE_LINES[i % DRIVE_LINES.length];
       i += 1;
-      // Visual always; speak every other line to avoid chatter
       if (i % 2 === 0) {
         speak(line, { rate: 1.02, pitch: 0.9 });
       } else {
@@ -228,7 +274,6 @@ export function CoachBot({
     return null;
   }, []);
 
-  // Speech recognition
   useEffect(() => {
     const Ctor = getSpeechRecognitionCtor();
     if (!Ctor) {
@@ -325,7 +370,6 @@ export function CoachBot({
   return (
     <div className="rounded-2xl border border-zinc-800 bg-zinc-900/80 p-4">
       <div className="flex items-start gap-3">
-        {/* Drive orb avatar */}
         <div
           className={`relative flex h-14 w-14 shrink-0 items-center justify-center rounded-full ${
             active
@@ -367,7 +411,6 @@ export function CoachBot({
             </div>
           </div>
           <p className="mt-0.5 text-[11px] font-medium text-zinc-500">{micLabel}</p>
-          {/* Scrolling one-line callout — NO chat input */}
           <div className="mt-2 overflow-hidden rounded-lg bg-zinc-950/60 px-3 py-2">
             <p
               key={latest}
@@ -377,7 +420,7 @@ export function CoachBot({
             </p>
           </div>
           <p className="mt-1.5 text-[10px] text-zinc-600">
-            Voice: start · pause · resume · reset · next · done · skip
+            Voice: start · pause · resume · reset · next · done · skip — no chat typing
           </p>
         </div>
       </div>
@@ -404,6 +447,43 @@ export function speakDrive(
   } catch {
     /* optional */
   }
+}
+
+/** Estimate speaking duration (ms) for a script — used to wait before countdown. */
+export function estimateSpeakMs(text: string, rate = 0.95): number {
+  const words = text.trim().split(/\s+/).filter(Boolean).length;
+  const wpm = 165 * rate;
+  return Math.min(45000, Math.max(2500, Math.round((words / wpm) * 60_000) + 400));
+}
+
+/**
+ * Speak a form coaching script (one-way). Respects mute.
+ * Returns a promise that resolves after an estimated speak duration
+ * (speechSynthesis has no reliable end event across browsers when cancelled).
+ */
+export function speakFormScript(
+  text: string,
+  muted: boolean,
+  opts?: { rate?: number; pitch?: number }
+): Promise<void> {
+  const rate = opts?.rate ?? 0.95;
+  if (muted || typeof window === "undefined" || !window.speechSynthesis) {
+    return Promise.resolve();
+  }
+  try {
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.rate = rate;
+    u.pitch = opts?.pitch ?? 0.88;
+    const voice = pickVoice();
+    if (voice) u.voice = voice;
+    window.speechSynthesis.speak(u);
+  } catch {
+    return Promise.resolve();
+  }
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, estimateSpeakMs(text, rate));
+  });
 }
 
 export type { CoachBotProps };

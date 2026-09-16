@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Exercise } from "@/lib/exercises";
+import { buildFormCoachScript } from "@/lib/exercises";
 import { getSessionsForExercise, saveSession } from "@/lib/db";
 import { computeGoal, evaluateGoal } from "@/lib/goals";
 import { createTimer, type TimerSnapshot } from "@/lib/timer";
@@ -14,9 +15,12 @@ import { Disclaimer } from "./Disclaimer";
 import {
   CoachBot,
   CountdownSelector,
+  ExplainFormToggle,
   loadCountdownPref,
+  loadExplainFormPref,
   loadMutePref,
   speakDrive,
+  speakFormScript,
   type CoachCommand,
   type CountdownSec,
 } from "./CoachBot";
@@ -38,6 +42,7 @@ export function WorkoutClient({ exercise }: { exercise: Exercise }) {
 
   const [countdownSec, setCountdownSec] = useState<CountdownSec>(10);
   const [muted, setMuted] = useState(false);
+  const [explainForm, setExplainForm] = useState(false);
   const [preCount, setPreCount] = useState<number | null>(null);
   const [showGo, setShowGo] = useState(false);
   const [announce, setAnnounce] = useState<string | null>(null);
@@ -47,6 +52,7 @@ export function WorkoutClient({ exercise }: { exercise: Exercise }) {
   useEffect(() => {
     setCountdownSec(loadCountdownPref());
     setMuted(loadMutePref());
+    setExplainForm(loadExplainFormPref());
   }, []);
 
   const totalSets = useMemo(() => {
@@ -143,9 +149,16 @@ export function WorkoutClient({ exercise }: { exercise: Exercise }) {
     setReps(exercise.defaultReps ?? 10);
     setPhase("active");
     setupTimer(false, goal.targetSecPerSet * 1000);
-    setAnnounce("Let's go.");
-    void runPreCountdown(true);
-  }, [goal, exercise.defaultReps, setupTimer, runPreCountdown]);
+    void (async () => {
+      if (explainForm) {
+        const script = buildFormCoachScript(exercise);
+        setAnnounce("Form brief.");
+        await speakFormScript(script, muted, { rate: 0.95, pitch: 0.88 });
+      }
+      setAnnounce("Let's go.");
+      await runPreCountdown(true);
+    })();
+  }, [goal, exercise, setupTimer, runPreCountdown, explainForm, muted]);
 
   const finishSet = useCallback(() => {
     if (!goal || !timerSnap) return;
@@ -295,6 +308,12 @@ export function WorkoutClient({ exercise }: { exercise: Exercise }) {
           onChange={setCountdownSec}
         />
 
+        <ExplainFormToggle
+          className="mt-4"
+          value={explainForm}
+          onChange={setExplainForm}
+        />
+
         <div className="mt-4">
           <CoachBot
             active={false}
@@ -420,10 +439,33 @@ export function WorkoutClient({ exercise }: { exercise: Exercise }) {
         />
       </div>
 
+      <div className="mt-3 flex items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-900/70 p-2">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={exercise.formExecImage || exercise.formImage}
+          alt={`${exercise.name} execution reference`}
+          className="h-14 w-14 shrink-0 rounded-lg object-cover object-center"
+          width={56}
+          height={56}
+        />
+        <div className="min-w-0">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-orange-400">
+            Form ref · exec
+          </p>
+          <p className="truncate text-xs text-zinc-400">{exercise.name}</p>
+        </div>
+      </div>
+
       <CountdownSelector
         className="mt-4"
         value={countdownSec}
         onChange={setCountdownSec}
+      />
+
+      <ExplainFormToggle
+        className="mt-3"
+        value={explainForm}
+        onChange={setExplainForm}
       />
 
       <div
