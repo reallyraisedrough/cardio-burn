@@ -50,7 +50,7 @@ export function WorkoutClient({ exercise }: { exercise: Exercise }) {
   const [countdownSec, setCountdownSec] = useState<CountdownSec>(10);
   const [muted, setMuted] = useState(false);
   const [explainForm, setExplainForm] = useState(false);
-  const [mode, setMode] = useState<IntensityMode>("intermediate");
+  const [mode, setMode] = useState<IntensityMode>("moderate");
   const [history, setHistory] = useState<WorkoutSession[]>([]);
   const [preCount, setPreCount] = useState<number | null>(null);
   const [showGo, setShowGo] = useState(false);

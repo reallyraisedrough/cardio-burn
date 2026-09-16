@@ -11,7 +11,7 @@ export type ExerciseSlug =
 
 export type TrackingMode = "timed" | "reps";
 
-export type IntensityMode = "beginner" | "intermediate" | "advanced";
+export type IntensityMode = "beginning" | "moderate" | "expert";
 
 export interface ModePreset {
   id: IntensityMode;

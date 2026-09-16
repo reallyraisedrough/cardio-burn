@@ -13,7 +13,7 @@ import {
   resolveWorkingSets,
 } from "./modes";
 
-const MAX_WORKING_SETS = 8;
+const MAX_WORKING_SETS = 20;
 const MAX_SET_SEC = 240;
 const MIN_SET_SEC = 15;
 
@@ -58,7 +58,7 @@ function avgWorkingReps(session: WorkoutSession): number {
 export function computeGoal(
   exercise: Exercise,
   history: WorkoutSession[],
-  mode: IntensityMode = "intermediate"
+  mode: IntensityMode = "moderate"
 ): WorkoutGoal {
   const preset = getModePreset(mode);
   const modeSets = resolveWorkingSets(mode);

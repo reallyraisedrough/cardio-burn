@@ -24,7 +24,7 @@ export function ExerciseDetailClient({ exercise }: { exercise: Exercise }) {
   const [last, setLast] = useState<WorkoutSession | null>(null);
   const [history, setHistory] = useState<WorkoutSession[]>([]);
   const [goal, setGoal] = useState<WorkoutGoal | null>(null);
-  const [mode, setMode] = useState<IntensityMode>("intermediate");
+  const [mode, setMode] = useState<IntensityMode>("moderate");
   const [hearing, setHearing] = useState(false);
 
   const applyGoal = useCallback(

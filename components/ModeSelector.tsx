@@ -50,10 +50,10 @@ export function ModeSelector({
                   {p.label}
                 </p>
                 <p className="mt-1 text-[10px] leading-tight text-zinc-500">
-                  {p.workingSets} sets · {p.timedMin}–{p.timedMax}s
+                  {p.workingSets} work + burnout
                 </p>
                 <p className="mt-0.5 text-[10px] text-zinc-600">
-                  {p.repsMin}–{p.repsMax} reps
+                  {p.timedMin}–{p.timedMax}s · {p.repsMin}–{p.repsMax} reps
                 </p>
               </button>
             );

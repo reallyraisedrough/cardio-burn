@@ -1,14 +1,21 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { EXERCISES } from "@/lib/exercises";
 import { getAllSessions } from "@/lib/db";
 import { computeGoal } from "@/lib/goals";
 import {
   loadModePref,
   saveModePref,
+  MODE_PRESETS,
   type IntensityMode,
 } from "@/lib/modes";
+import {
+  foodHomeBlurb,
+  getFoodHints,
+  scheduleHomeBlurb,
+} from "@/lib/schedule";
 import { ExerciseCard } from "./ExerciseCard";
 import { Disclaimer } from "./Disclaimer";
 import { ModeSelector } from "./ModeSelector";
@@ -22,7 +29,7 @@ export function HomeClient() {
   const [historyBySlug, setHistoryBySlug] = useState<
     Record<string, WorkoutSession[]>
   >({});
-  const [mode, setMode] = useState<IntensityMode>("intermediate");
+  const [mode, setMode] = useState<IntensityMode>("moderate");
 
   const recomputeGoals = useCallback(
     (m: IntensityMode, histMap: Record<string, WorkoutSession[]>) => {
@@ -67,6 +74,9 @@ export function HomeClient() {
     recomputeGoals(m, historyBySlug);
   };
 
+  const food = getFoodHints(mode);
+  const preset = MODE_PRESETS[mode];
+
   return (
     <div className="mx-auto max-w-lg px-4 pb-28 pt-6">
       <header className="mb-6">
@@ -82,11 +92,38 @@ export function HomeClient() {
       </header>
 
       <ModeSelector
-        className="mb-6"
+        className="mb-4"
         value={mode}
         onChange={onModeChange}
         variant="cards"
       />
+
+      <section className="mb-6 rounded-2xl border border-zinc-800 bg-zinc-900/60 p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wider text-orange-400">
+              Plan snapshot · {preset.label}
+            </p>
+            <p className="mt-1 text-sm text-zinc-300">
+              {scheduleHomeBlurb(mode)}
+            </p>
+            <p className="mt-2 text-xs text-zinc-500">{foodHomeBlurb(mode)}</p>
+            <ul className="mt-2 space-y-1">
+              {food.tips.slice(0, 2).map((t) => (
+                <li key={t} className="text-xs text-zinc-400">
+                  · {t}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <Link
+            href="/plan"
+            className="shrink-0 rounded-xl border border-orange-500/40 bg-orange-500/10 px-3 py-2 text-xs font-bold text-orange-400 hover:bg-orange-500/20"
+          >
+            Full plan
+          </Link>
+        </div>
+      </section>
 
       <ul className="flex flex-col gap-3">
         {EXERCISES.map((ex) => (

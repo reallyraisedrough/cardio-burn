@@ -7,56 +7,70 @@ const MODE_KEY = "cardio-burner-intensity-mode";
 /** Reference timed duration used to scale mode times for long exercises (e.g. jogging). */
 const TIMED_REF_SEC = 45;
 
+/** Migrate legacy mode ids stored in localStorage. */
+const LEGACY_MODE_MAP: Record<string, IntensityMode> = {
+  beginner: "beginning",
+  intermediate: "moderate",
+  advanced: "expert",
+};
+
 export const MODE_PRESETS: Record<IntensityMode, ModePreset> = {
-  beginner: {
-    id: "beginner",
-    label: "Beginner",
-    shortLabel: "Easy",
-    workingSets: 3,
-    timedSec: 30, // mid of ~25–35s
-    timedMin: 25,
-    timedMax: 35,
-    reps: 9, // mid of ~8–10
-    repsMin: 8,
-    repsMax: 10,
-    description: "3 sets · shorter holds · easier volume",
-  },
-  intermediate: {
-    id: "intermediate",
-    label: "Intermediate",
-    shortLabel: "Hard",
-    workingSets: 4,
-    timedSec: 45, // mid of ~40–50s
-    timedMin: 40,
-    timedMax: 50,
-    reps: 13, // mid of ~12–15
-    repsMin: 12,
-    repsMax: 15,
-    description: "4 sets · solid targets · steady push",
-  },
-  advanced: {
-    id: "advanced",
-    label: "Advanced",
-    shortLabel: "Beast",
+  beginning: {
+    id: "beginning",
+    label: "Beginning",
+    shortLabel: "Start",
     workingSets: 5,
-    timedSec: 65, // mid of ~55–75s
-    timedMin: 55,
+    timedSec: 35, // mid of ~30–40s
+    timedMin: 30,
+    timedMax: 40,
+    reps: 10, // mid of ~8–12
+    repsMin: 8,
+    repsMax: 12,
+    description: "5 working sets + burnout · ~30–40s holds · 8–12 reps",
+  },
+  moderate: {
+    id: "moderate",
+    label: "Moderate",
+    shortLabel: "Push",
+    workingSets: 10,
+    timedSec: 50, // mid of ~45–55s
+    timedMin: 45,
+    timedMax: 55,
+    reps: 14, // mid of ~12–16
+    repsMin: 12,
+    repsMax: 16,
+    description: "10 working sets + burnout · ~45–55s holds · 12–16 reps",
+  },
+  expert: {
+    id: "expert",
+    label: "Expert",
+    shortLabel: "Master",
+    workingSets: 15,
+    timedSec: 68, // mid of ~60–75s
+    timedMin: 60,
     timedMax: 75,
-    reps: 17, // mid of ~15–20
+    reps: 18, // mid of ~15–20
     repsMin: 15,
     repsMax: 20,
-    description: "5 sets · max push · empty the tank",
+    description: "15 working sets + burnout · ~60–75s holds · 15–20 reps",
   },
 };
 
 export const MODE_ORDER: IntensityMode[] = [
-  "beginner",
-  "intermediate",
-  "advanced",
+  "beginning",
+  "moderate",
+  "expert",
 ];
 
 export function isIntensityMode(v: string): v is IntensityMode {
-  return v === "beginner" || v === "intermediate" || v === "advanced";
+  return v === "beginning" || v === "moderate" || v === "expert";
+}
+
+export function migrateModeId(raw: string | null): IntensityMode | null {
+  if (!raw) return null;
+  if (isIntensityMode(raw)) return raw;
+  const mapped = LEGACY_MODE_MAP[raw];
+  return mapped ?? null;
 }
 
 export function getModePreset(mode: IntensityMode): ModePreset {
@@ -64,14 +78,21 @@ export function getModePreset(mode: IntensityMode): ModePreset {
 }
 
 export function loadModePref(): IntensityMode {
-  if (typeof window === "undefined") return "intermediate";
+  if (typeof window === "undefined") return "moderate";
   try {
     const raw = localStorage.getItem(MODE_KEY);
-    if (raw && isIntensityMode(raw)) return raw;
+    const migrated = migrateModeId(raw);
+    if (migrated) {
+      // Persist migrated id so next load is clean
+      if (raw && raw !== migrated) {
+        localStorage.setItem(MODE_KEY, migrated);
+      }
+      return migrated;
+    }
   } catch {
     /* ignore */
   }
-  return "intermediate";
+  return "moderate";
 }
 
 export function saveModePref(mode: IntensityMode) {
@@ -118,7 +139,7 @@ export function resolveWorkingSets(mode: IntensityMode): number {
   return MODE_PRESETS[mode].workingSets;
 }
 
-/** Compact label for UI: "Intermediate · 4 sets · 40s" or "… · 12 reps" */
+/** Compact label for UI: "Moderate · 10 work + burnout · 50s" */
 export function formatModeGoalLine(
   mode: IntensityMode,
   workingSets: number,
@@ -128,20 +149,23 @@ export function formatModeGoalLine(
 ): string {
   const name = MODE_PRESETS[mode].label;
   if (tracking === "reps" && typeof targetReps === "number") {
-    return `${name} · ${workingSets} sets · ${targetReps} reps`;
+    return `${name} · ${workingSets} work + burnout · ${targetReps} reps`;
   }
-  return `${name} · ${workingSets} sets · ${targetSec}s`;
+  return `${name} · ${workingSets} work + burnout · ${targetSec}s`;
 }
 
 /** Brief coach line when starting a workout. */
-export function modeStartCoachLine(mode: IntensityMode): string {
-  const p = MODE_PRESETS[mode];
-  const setWord = p.workingSets === 1 ? "set" : "sets";
-  if (mode === "beginner") {
-    return `${p.label} mode. ${p.workingSets} ${setWord}. Steady and strong.`;
+export function modeStartCoachLine(mode: IntensityMode | string): string {
+  const resolved =
+    migrateModeId(String(mode)) ??
+    (isIntensityMode(String(mode)) ? (mode as IntensityMode) : "moderate");
+  const p = MODE_PRESETS[resolved];
+  const n = p.workingSets;
+  if (resolved === "beginning") {
+    return `${p.label} mode. ${n} working sets plus burnout. Steady and strong.`;
   }
-  if (mode === "advanced") {
-    return `${p.label} mode. ${p.workingSets} ${setWord}. Let's work.`;
+  if (resolved === "expert") {
+    return `${p.label} mode. ${n} working sets plus burnout. Empty the tank.`;
   }
-  return `${p.label} mode. ${p.workingSets} ${setWord}. Let's go.`;
+  return `${p.label} mode. ${n} working sets plus burnout. Let's go.`;
 }
