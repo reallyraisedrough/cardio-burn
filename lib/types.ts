@@ -11,6 +11,22 @@ export type ExerciseSlug =
 
 export type TrackingMode = "timed" | "reps";
 
+export type IntensityMode = "beginner" | "intermediate" | "advanced";
+
+export interface ModePreset {
+  id: IntensityMode;
+  label: string;
+  shortLabel: string;
+  workingSets: number;
+  timedSec: number;
+  timedMin: number;
+  timedMax: number;
+  reps: number;
+  repsMin: number;
+  repsMax: number;
+  description: string;
+}
+
 export interface Exercise {
   slug: ExerciseSlug;
   name: string;
@@ -43,9 +59,12 @@ export interface SetResult {
 export interface WorkoutGoal {
   workingSets: number;
   targetSecPerSet: number;
+  /** Target reps per working set (rep-tracked exercises) */
+  targetReps?: number;
   burnout: boolean;
   label: string;
   source: "starter" | "progressive";
+  mode: IntensityMode;
 }
 
 export interface WorkoutSession {

@@ -7,11 +7,18 @@ import type { Exercise } from "@/lib/exercises";
 import { buildFormCoachScript } from "@/lib/exercises";
 import { getSessionsForExercise, saveSession } from "@/lib/db";
 import { computeGoal, evaluateGoal } from "@/lib/goals";
+import {
+  loadModePref,
+  modeStartCoachLine,
+  saveModePref,
+  type IntensityMode,
+} from "@/lib/modes";
 import { createTimer, type TimerSnapshot } from "@/lib/timer";
 import { notifySetComplete } from "@/lib/audio";
 import { formatMs, uid } from "@/lib/format";
-import type { SetResult, WorkoutGoal } from "@/lib/types";
+import type { SetResult, WorkoutGoal, WorkoutSession } from "@/lib/types";
 import { Disclaimer } from "./Disclaimer";
+import { ModeSelector } from "./ModeSelector";
 import {
   CoachBot,
   CountdownSelector,
@@ -43,6 +50,8 @@ export function WorkoutClient({ exercise }: { exercise: Exercise }) {
   const [countdownSec, setCountdownSec] = useState<CountdownSec>(10);
   const [muted, setMuted] = useState(false);
   const [explainForm, setExplainForm] = useState(false);
+  const [mode, setMode] = useState<IntensityMode>("intermediate");
+  const [history, setHistory] = useState<WorkoutSession[]>([]);
   const [preCount, setPreCount] = useState<number | null>(null);
   const [showGo, setShowGo] = useState(false);
   const [announce, setAnnounce] = useState<string | null>(null);
@@ -53,6 +62,7 @@ export function WorkoutClient({ exercise }: { exercise: Exercise }) {
     setCountdownSec(loadCountdownPref());
     setMuted(loadMutePref());
     setExplainForm(loadExplainFormPref());
+    setMode(loadModePref());
   }, []);
 
   const totalSets = useMemo(() => {
@@ -72,11 +82,17 @@ export function WorkoutClient({ exercise }: { exercise: Exercise }) {
     (async () => {
       const hist = await getSessionsForExercise(exercise.slug);
       if (cancelled) return;
-      const g = computeGoal(exercise, hist);
+      const m = loadModePref();
+      setMode(m);
+      setHistory(hist);
+      const g = computeGoal(exercise, hist, m);
       setGoal(g);
       setPhase("ready");
     })().catch(() => {
-      const g = computeGoal(exercise, []);
+      const m = loadModePref();
+      setMode(m);
+      setHistory([]);
+      const g = computeGoal(exercise, [], m);
       setGoal(g);
       setPhase("ready");
     });
@@ -85,6 +101,16 @@ export function WorkoutClient({ exercise }: { exercise: Exercise }) {
       timerRef.current?.destroy();
     };
   }, [exercise]);
+
+  const onModeChange = useCallback(
+    (m: IntensityMode) => {
+      if (phase !== "ready") return;
+      setMode(m);
+      saveModePref(m);
+      setGoal(computeGoal(exercise, history, m));
+    },
+    [phase, exercise, history]
+  );
 
   const teardownTimer = () => {
     timerRef.current?.destroy();
@@ -146,10 +172,15 @@ export function WorkoutClient({ exercise }: { exercise: Exercise }) {
     setStartedAt(new Date().toISOString());
     setSets([]);
     setSetIndex(0);
-    setReps(exercise.defaultReps ?? 10);
+    setReps(goal.targetReps ?? exercise.defaultReps ?? 10);
     setPhase("active");
     setupTimer(false, goal.targetSecPerSet * 1000);
     void (async () => {
+      const modeLine = modeStartCoachLine(goal.mode ?? mode);
+      setAnnounce(modeLine);
+      if (!muted) {
+        await speakFormScript(modeLine, muted, { rate: 0.98, pitch: 0.88 });
+      }
       if (explainForm) {
         const script = buildFormCoachScript(exercise);
         setAnnounce("Form brief.");
@@ -158,7 +189,7 @@ export function WorkoutClient({ exercise }: { exercise: Exercise }) {
       setAnnounce("Let's go.");
       await runPreCountdown(true);
     })();
-  }, [goal, exercise, setupTimer, runPreCountdown, explainForm, muted]);
+  }, [goal, exercise, setupTimer, runPreCountdown, explainForm, muted, mode]);
 
   const finishSet = useCallback(() => {
     if (!goal || !timerSnap) return;
@@ -191,7 +222,7 @@ export function WorkoutClient({ exercise }: { exercise: Exercise }) {
 
     const nextBurnout = nextIndex >= goal.workingSets;
     setSetIndex(nextIndex);
-    setReps(exercise.defaultReps ?? 10);
+    setReps(goal.targetReps ?? exercise.defaultReps ?? 10);
     setupTimer(
       nextBurnout,
       nextBurnout ? 0 : goal.targetSecPerSet * 1000
@@ -288,6 +319,13 @@ export function WorkoutClient({ exercise }: { exercise: Exercise }) {
         <h1 className="mt-6 text-3xl font-black text-white">
           {exercise.emoji} {exercise.name}
         </h1>
+        <ModeSelector
+          className="mt-6"
+          value={mode}
+          onChange={onModeChange}
+          variant="cards"
+        />
+
         <div className="mt-6 rounded-2xl border border-orange-500/40 bg-orange-500/10 p-5">
           <p className="text-sm font-bold uppercase tracking-wider text-orange-400">
             Today&apos;s goal
@@ -298,7 +336,9 @@ export function WorkoutClient({ exercise }: { exercise: Exercise }) {
             {goal.burnout
               ? " + 1 final BURNOUT (go to max, count-up until Done)"
               : ""}
-            . Target {goal.targetSecPerSet}s per working set.
+            {exercise.tracking === "reps" && goal.targetReps
+              ? `. Target ~${goal.targetReps} reps per set (${goal.targetSecPerSet}s pace).`
+              : `. Target ${goal.targetSecPerSet}s per working set.`}
           </p>
         </div>
 
@@ -485,7 +525,9 @@ export function WorkoutClient({ exercise }: { exercise: Exercise }) {
         <p className="mt-1 text-zinc-400 text-sm">
           {isBurnout
             ? "Count-up only. Push until you tap Done."
-            : `Target ${goal.targetSecPerSet}s · alarm at completion`}
+            : exercise.tracking === "reps" && goal.targetReps
+              ? `Target ${goal.targetReps} reps · ${goal.targetSecPerSet}s · alarm at completion`
+              : `Target ${goal.targetSecPerSet}s · alarm at completion`}
         </p>
         <p
           className={`mt-6 text-center font-mono text-6xl font-black tabular-nums ${

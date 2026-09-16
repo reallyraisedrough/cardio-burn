@@ -1,13 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import type { Exercise } from "@/lib/exercises";
 import { buildFormCoachScript } from "@/lib/exercises";
 import { getSessionsForExercise } from "@/lib/db";
 import { computeGoal } from "@/lib/goals";
+import {
+  loadModePref,
+  saveModePref,
+  type IntensityMode,
+} from "@/lib/modes";
 import { formatMs, formatDate } from "@/lib/format";
 import { Disclaimer } from "./Disclaimer";
+import { ModeSelector } from "./ModeSelector";
 import {
   loadMutePref,
   speakFormScript,
@@ -16,21 +22,44 @@ import type { WorkoutGoal, WorkoutSession } from "@/lib/types";
 
 export function ExerciseDetailClient({ exercise }: { exercise: Exercise }) {
   const [last, setLast] = useState<WorkoutSession | null>(null);
+  const [history, setHistory] = useState<WorkoutSession[]>([]);
   const [goal, setGoal] = useState<WorkoutGoal | null>(null);
+  const [mode, setMode] = useState<IntensityMode>("intermediate");
   const [hearing, setHearing] = useState(false);
 
+  const applyGoal = useCallback(
+    (m: IntensityMode, hist: WorkoutSession[]) => {
+      setGoal(computeGoal(exercise, hist, m));
+    },
+    [exercise]
+  );
+
   useEffect(() => {
+    setMode(loadModePref());
     let cancelled = false;
     (async () => {
       const hist = await getSessionsForExercise(exercise.slug);
       if (cancelled) return;
+      const m = loadModePref();
       setLast(hist[0] ?? null);
-      setGoal(computeGoal(exercise, hist));
-    })().catch(() => setGoal(computeGoal(exercise, [])));
+      setHistory(hist);
+      setMode(m);
+      applyGoal(m, hist);
+    })().catch(() => {
+      const m = loadModePref();
+      setMode(m);
+      applyGoal(m, []);
+    });
     return () => {
       cancelled = true;
     };
-  }, [exercise]);
+  }, [exercise, applyGoal]);
+
+  const onModeChange = (m: IntensityMode) => {
+    setMode(m);
+    saveModePref(m);
+    applyGoal(m, history);
+  };
 
   const hearForm = async () => {
     if (hearing) return;
@@ -120,7 +149,14 @@ export function ExerciseDetailClient({ exercise }: { exercise: Exercise }) {
         </ol>
       </section>
 
-      <section className="mt-8 rounded-2xl border border-zinc-800 bg-zinc-900 p-4">
+      <ModeSelector
+        className="mt-8"
+        value={mode}
+        onChange={onModeChange}
+        variant="segmented"
+      />
+
+      <section className="mt-6 rounded-2xl border border-zinc-800 bg-zinc-900 p-4">
         <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-400">
           Your goal
         </h2>
@@ -129,9 +165,18 @@ export function ExerciseDetailClient({ exercise }: { exercise: Exercise }) {
         </p>
         <p className="mt-1 text-xs text-zinc-500">
           {goal?.source === "starter"
-            ? "No history yet — starter prescription."
-            : "Progressive overload from your recent sessions."}
+            ? "No history yet — mode seeds the starter prescription."
+            : "Progressive overload from your recent sessions, floored by mode."}
         </p>
+        {goal && (
+          <p className="mt-2 text-sm text-zinc-400">
+            {goal.workingSets} working sets
+            {goal.burnout ? " + burnout" : ""}
+            {exercise.tracking === "reps" && goal.targetReps
+              ? ` · ~${goal.targetReps} reps/set`
+              : ` · ${goal.targetSecPerSet}s/set`}
+          </p>
+        )}
         {last && (
           <p className="mt-3 text-sm text-zinc-400">
             Last session {formatDate(last.completedAt)} · total working{" "}
