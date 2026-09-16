@@ -1,7 +1,7 @@
 import type { Exercise, ExerciseSlug } from "./types";
 export type { Exercise, ExerciseSlug } from "./types";
 
-const V = "7";
+const V = "8";
 
 function formPaths(slug: ExerciseSlug) {
   return {

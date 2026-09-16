@@ -1,5 +1,5 @@
 /* Cardio Burner — basic offline shell cache */
-const CACHE = "cardio-burner-v7";
+const CACHE = "cardio-burner-v8";
 const PRECACHE = ["/", "/manifest.webmanifest", "/icons/icon-192.png"];
 
 self.addEventListener("install", (event) => {
