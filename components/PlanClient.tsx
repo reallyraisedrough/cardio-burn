@@ -11,6 +11,7 @@ import {
 import { getFoodHints, getSchedulePlan } from "@/lib/schedule";
 import { ModeSelector } from "./ModeSelector";
 import { Disclaimer } from "./Disclaimer";
+import { DailyInspirationSettings } from "./DailyInspirationSettings";
 
 export function PlanClient() {
   const [mode, setMode] = useState<IntensityMode>("moderate");
@@ -162,6 +163,8 @@ export function PlanClient() {
           ))}
         </ul>
       </section>
+
+      <DailyInspirationSettings />
 
       <Disclaimer />
     </div>
