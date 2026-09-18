@@ -58,6 +58,8 @@ API routes:
 Without keys, use **Demo unlock** on `/subscribe` so Progress works offline.
 
 ## Deploy (Vercel)
+**Publish:** Import this repo in Vercel as a Next.js app, add Stripe env vars from `.env.example`, deploy.
+
 
 1. Import `reallyraisedrough/cardio-burn` in Vercel
 2. Framework: Next.js (auto)
