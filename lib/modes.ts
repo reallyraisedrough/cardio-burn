@@ -154,18 +154,20 @@ export function formatModeGoalLine(
   return `${name} · ${workingSets} work + burnout · ${targetSec}s`;
 }
 
-/** Brief coach line when starting a workout. */
+/** Brief coach line when starting a workout (mode-aware bank). */
 export function modeStartCoachLine(mode: IntensityMode | string): string {
+  // Lazy import avoided — pickSessionStart lives in coach.ts which imports modes.
+  // Keep a solid fallback here; WorkoutClient prefers pickSessionStart directly.
   const resolved =
     migrateModeId(String(mode)) ??
     (isIntensityMode(String(mode)) ? (mode as IntensityMode) : "moderate");
   const p = MODE_PRESETS[resolved];
   const n = p.workingSets;
   if (resolved === "beginning") {
-    return `${p.label} mode. ${n} working sets plus burnout. Steady and strong.`;
+    return `Beginning mode. ${n} working sets, then burnout. Build clean and finish strong.`;
   }
   if (resolved === "expert") {
-    return `${p.label} mode. ${n} working sets plus burnout. Empty the tank.`;
+    return `Expert mode. ${n} working sets plus burnout. No shortcuts.`;
   }
-  return `${p.label} mode. ${n} working sets plus burnout. Let's go.`;
+  return `Moderate mode. ${n} working sets plus burnout. Stay locked in.`;
 }

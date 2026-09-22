@@ -9,10 +9,24 @@ import { getSessionsForExercise, saveSession } from "@/lib/db";
 import { computeGoal, evaluateGoal } from "@/lib/goals";
 import {
   loadModePref,
-  modeStartCoachLine,
   saveModePref,
   type IntensityMode,
 } from "@/lib/modes";
+import {
+  COACH_PITCH,
+  COACH_RATE,
+  COACH_RATE_COUNT,
+  COUNTDOWN_SPEAK_LAST,
+  ackCommand,
+  estimateSpeakMs,
+  pickBurnoutStart,
+  pickGoLine,
+  pickNextSet,
+  pickSessionStart,
+  pickSetCompleteRest,
+  pickWorkoutComplete,
+  speakCoach,
+} from "@/lib/coach";
 import { createTimer, type TimerSnapshot } from "@/lib/timer";
 import { notifySetComplete } from "@/lib/audio";
 import { formatMs, uid } from "@/lib/format";
@@ -26,7 +40,6 @@ import {
   loadCountdownPref,
   loadExplainFormPref,
   loadMutePref,
-  speakDrive,
   speakFormScript,
   type CoachCommand,
   type CountdownSec,
@@ -133,7 +146,7 @@ export function WorkoutClient({ exercise }: { exercise: Exercise }) {
               "Set complete",
               `${exercise.name} — target time reached`
             );
-            setAnnounce("Time. Rest.");
+            setAnnounce(pickSetCompleteRest());
           }
         }
       );
@@ -151,12 +164,21 @@ export function WorkoutClient({ exercise }: { exercise: Exercise }) {
       const total = countdownSec;
       for (let n = total; n >= 1; n--) {
         setPreCount(n);
-        speakDrive(String(n), muted, { rate: 1.05, pitch: 0.85 });
+        // Visual always; speak only last 3 ticks to avoid spam/overlap
+        if (n <= COUNTDOWN_SPEAK_LAST) {
+          speakCoach(String(n), muted, {
+            rate: COACH_RATE_COUNT,
+            pitch: COACH_PITCH,
+          });
+        }
         await new Promise((r) => setTimeout(r, 1000));
       }
       setPreCount(null);
       setShowGo(true);
-      speakDrive("GO", muted, { rate: 1.05, pitch: 0.88 });
+      speakCoach(pickGoLine(), muted, {
+        rate: 1.05,
+        pitch: COACH_PITCH,
+      });
       await new Promise((r) => setTimeout(r, 700));
       setShowGo(false);
       if (pendingStart.current) {
@@ -176,17 +198,19 @@ export function WorkoutClient({ exercise }: { exercise: Exercise }) {
     setPhase("active");
     setupTimer(false, goal.targetSecPerSet * 1000);
     void (async () => {
-      const modeLine = modeStartCoachLine(goal.mode ?? mode);
+      // Announce speaks once via CoachBot; wait estimated duration (no double TTS)
+      const modeLine = pickSessionStart(goal.mode ?? mode);
       setAnnounce(modeLine);
-      if (!muted) {
-        await speakFormScript(modeLine, muted, { rate: 0.98, pitch: 0.88 });
-      }
+      await new Promise((r) =>
+        setTimeout(r, muted ? 600 : estimateSpeakMs(modeLine, COACH_RATE))
+      );
       if (explainForm) {
         const script = buildFormCoachScript(exercise);
         setAnnounce("Form brief.");
-        await speakFormScript(script, muted, { rate: 0.95, pitch: 0.88 });
+        await speakFormScript(script, muted, { rate: 0.95, pitch: 0.82 });
       }
       setAnnounce("Let's go.");
+      await new Promise((r) => setTimeout(r, muted ? 200 : 700));
       await runPreCountdown(true);
     })();
   }, [goal, exercise, setupTimer, runPreCountdown, explainForm, muted, mode]);
@@ -215,7 +239,7 @@ export function WorkoutClient({ exercise }: { exercise: Exercise }) {
       teardownTimer();
       const ok = evaluateGoal(goal, nextSets);
       setMetGoal(ok);
-      setAnnounce(ok ? "Goal crushed." : "Session complete.");
+      setAnnounce(pickWorkoutComplete(ok));
       setPhase("summary");
       return;
     }
@@ -228,9 +252,9 @@ export function WorkoutClient({ exercise }: { exercise: Exercise }) {
       nextBurnout ? 0 : goal.targetSecPerSet * 1000
     );
     if (nextBurnout) {
-      setAnnounce("Burnout — empty the tank.");
+      setAnnounce(pickBurnoutStart());
     } else {
-      setAnnounce("One more. Push through.");
+      setAnnounce(pickNextSet());
     }
     void runPreCountdown(true);
   }, [
@@ -271,12 +295,16 @@ export function WorkoutClient({ exercise }: { exercise: Exercise }) {
   const handleCoachCommand = useCallback(
     (cmd: CoachCommand) => {
       if (phase !== "active") {
-        if (cmd === "start" && phase === "ready") beginWorkout();
+        if (cmd === "start" && phase === "ready") {
+          setAnnounce(ackCommand("start"));
+          beginWorkout();
+        }
         return;
       }
       switch (cmd) {
         case "start":
         case "resume":
+          setAnnounce(ackCommand(cmd === "start" ? "start" : "resume"));
           if (!timerSnap?.running && !countdownBusy.current) {
             void runPreCountdown(true);
           } else if (!timerSnap?.running) {
@@ -285,16 +313,17 @@ export function WorkoutClient({ exercise }: { exercise: Exercise }) {
           break;
         case "pause":
           timerRef.current?.pause();
-          setAnnounce("Hold. Breathe.");
+          setAnnounce(ackCommand("pause"));
           break;
         case "reset":
           alarmFired.current = false;
           timerRef.current?.reset();
-          setAnnounce("Reset. Ready.");
+          setAnnounce(ackCommand("reset"));
           break;
         case "done":
         case "next":
         case "skip":
+          setAnnounce(ackCommand(cmd));
           finishSet();
           break;
       }
@@ -476,6 +505,7 @@ export function WorkoutClient({ exercise }: { exercise: Exercise }) {
           onCommand={handleCoachCommand}
           announce={announce}
           onAnnounceConsumed={() => setAnnounce(null)}
+          burnout={isBurnout}
         />
       </div>
 

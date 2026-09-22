@@ -176,18 +176,7 @@ export function isValidSlug(slug: string): slug is ExerciseSlug {
 }
 
 /** Build a tight one-way coaching script from form cues + benefits framing. */
-export function buildFormCoachScript(exercise: Exercise): string {
-  const cues = exercise.formCues.join(" ");
-  return (
-    `This move torches calories, builds strength, and builds your engine. ` +
-    `Here's perfect form for ${exercise.name}. ` +
-    `Setup and start: get into position and lock your stance. ` +
-    `${cues} ` +
-    `Breathe with the movement — never hold your breath. ` +
-    `Common mistakes: rushing the reps, losing a tight midline, and cutting range short. ` +
-    `Own every rep.`
-  );
-}
+export { buildFormCoachScript } from "./coach";
 
 export const DISCLAIMER =
   "Not medical advice. Consult a professional before starting any exercise program. Stop immediately if you feel pain, dizziness, or unusual discomfort.";

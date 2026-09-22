@@ -7,6 +7,18 @@ import {
   useRef,
   useState,
 } from "react";
+import {
+  COACH_PITCH,
+  COACH_RATE,
+  MID_SET_CUE_GAP_MS,
+  cancelCoachSpeech,
+  estimateSpeakMs,
+  pickBurnoutDuring,
+  pickCoachVoice,
+  pickMidSetPush,
+  speakCoach,
+  speakCoachAndWait,
+} from "@/lib/coach";
 
 export type CountdownSec = 5 | 10 | 15;
 export type MicStatus = "listening" | "off" | "unsupported";
@@ -23,19 +35,6 @@ export type CoachCommand =
 const MUTE_KEY = "cardio-burner-coach-mute";
 const COUNTDOWN_KEY = "cardio-burner-countdown-sec";
 const EXPLAIN_FORM_KEY = "cardio-burner-explain-form";
-
-const DRIVE_LINES = [
-  "Let's go.",
-  "Push through.",
-  "One more.",
-  "Stay locked in.",
-  "Empty the tank.",
-  "You got this.",
-  "Drive.",
-  "Keep moving.",
-  "Strong.",
-  "Burn it out.",
-];
 
 type SpeechRecognitionLike = {
   continuous: boolean;
@@ -58,20 +57,6 @@ function getSpeechRecognitionCtor():
     webkitSpeechRecognition?: new () => SpeechRecognitionLike;
   };
   return w.SpeechRecognition || w.webkitSpeechRecognition || null;
-}
-
-function pickVoice(): SpeechSynthesisVoice | null {
-  if (typeof window === "undefined" || !window.speechSynthesis) return null;
-  const voices = window.speechSynthesis.getVoices();
-  const en = voices.filter((v) => /en(-|_|$)/i.test(v.lang));
-  const pool = en.length ? en : voices;
-  if (!pool.length) return null;
-  const preferred = pool.find((v) =>
-    /david|daniel|alex|fred|male|deep|bass|baritone|google uk english male|microsoft david|microsoft guy|samantha/i.test(
-      v.name
-    )
-  );
-  return preferred || pool.find((v) => /en-US|en-GB/i.test(v.lang)) || pool[0];
 }
 
 export function loadCountdownPref(): CountdownSec {
@@ -187,6 +172,8 @@ type CoachBotProps = {
   announce?: string | null;
   /** Clear announce after consuming */
   onAnnounceConsumed?: () => void;
+  /** When true, mid-set cues use burnout bank */
+  burnout?: boolean;
 };
 
 export function CoachBot({
@@ -196,14 +183,20 @@ export function CoachBot({
   onCommand,
   announce,
   onAnnounceConsumed,
+  burnout = false,
 }: CoachBotProps) {
-  const [callouts, setCallouts] = useState<string[]>(["Coach ready. Hands-free mode."]);
+  const [callouts, setCallouts] = useState<string[]>([
+    "Coach ready. Hands-free mode.",
+  ]);
   const [micStatus, setMicStatus] = useState<MicStatus>("off");
   const [listeningEnabled, setListeningEnabled] = useState(true);
   const voiceRef = useRef<SpeechSynthesisVoice | null>(null);
   const recogRef = useRef<SpeechRecognitionLike | null>(null);
   const keepListening = useRef(false);
   const lastCmdAt = useRef(0);
+  const lastMidSpeakAt = useRef(0);
+  const burnoutRef = useRef(burnout);
+  burnoutRef.current = burnout;
 
   const pushCallout = useCallback((line: string) => {
     setCallouts((prev) => [...prev.slice(-8), line]);
@@ -213,18 +206,10 @@ export function CoachBot({
     (text: string, opts?: { rate?: number; pitch?: number }) => {
       pushCallout(text.length > 90 ? `${text.slice(0, 87)}…` : text);
       if (muted) return;
-      if (typeof window === "undefined" || !window.speechSynthesis) return;
-      try {
-        window.speechSynthesis.cancel();
-        const u = new SpeechSynthesisUtterance(text);
-        u.rate = opts?.rate ?? 1.0;
-        u.pitch = opts?.pitch ?? 0.9;
-        u.volume = 1;
-        if (voiceRef.current) u.voice = voiceRef.current;
-        window.speechSynthesis.speak(u);
-      } catch {
-        /* TTS optional */
-      }
+      speakCoach(text, false, {
+        rate: opts?.rate ?? COACH_RATE,
+        pitch: opts?.pitch ?? COACH_PITCH,
+      });
     },
     [muted, pushCallout]
   );
@@ -232,33 +217,38 @@ export function CoachBot({
   useEffect(() => {
     if (typeof window === "undefined" || !window.speechSynthesis) return;
     const assign = () => {
-      voiceRef.current = pickVoice();
+      voiceRef.current = pickCoachVoice();
     };
     assign();
     window.speechSynthesis.addEventListener("voiceschanged", assign);
     return () => {
       window.speechSynthesis.removeEventListener("voiceschanged", assign);
+      cancelCoachSpeech();
     };
   }, []);
 
   useEffect(() => {
     if (!announce) return;
-    speak(announce, { rate: 0.98, pitch: 0.88 });
+    speak(announce, { rate: COACH_RATE, pitch: COACH_PITCH });
     onAnnounceConsumed?.();
   }, [announce, speak, onAnnounceConsumed]);
 
+  // Sparse mid-set push — ticker always, speech only on spaced key moments
   useEffect(() => {
     if (!active) return;
-    let i = 0;
     const id = window.setInterval(() => {
-      const line = DRIVE_LINES[i % DRIVE_LINES.length];
-      i += 1;
-      if (i % 2 === 0) {
-        speak(line, { rate: 1.02, pitch: 0.9 });
+      const line = burnoutRef.current
+        ? pickBurnoutDuring()
+        : pickMidSetPush();
+      const now = Date.now();
+      // Always show on ticker; speak only if gap elapsed (avoids spam / overlap)
+      if (now - lastMidSpeakAt.current >= MID_SET_CUE_GAP_MS) {
+        lastMidSpeakAt.current = now;
+        speak(line, { rate: 1.02, pitch: COACH_PITCH });
       } else {
         pushCallout(line);
       }
-    }, 22000);
+    }, MID_SET_CUE_GAP_MS);
     return () => clearInterval(id);
   }, [active, speak, pushCallout]);
 
@@ -358,6 +348,7 @@ export function CoachBot({
   const toggleMute = () => {
     const next = !muted;
     onMuteChange(next);
+    if (next) cancelCoachSpeech();
     try {
       localStorage.setItem(MUTE_KEY, next ? "1" : "0");
     } catch {
@@ -387,7 +378,7 @@ export function CoachBot({
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
             <p className="text-sm font-black uppercase tracking-wider text-orange-400">
-              Coach
+              Drive Coach
             </p>
             <div className="flex items-center gap-2">
               <button
@@ -410,7 +401,10 @@ export function CoachBot({
               )}
             </div>
           </div>
-          <p className="mt-0.5 text-[11px] font-medium text-zinc-500">{micLabel}</p>
+          <p className="mt-0.5 text-[11px] font-medium text-zinc-500">
+            {micLabel}
+            <span className="text-zinc-600"> · Drive intensity</span>
+          </p>
           <div className="mt-2 overflow-hidden rounded-lg bg-zinc-950/60 px-3 py-2">
             <p
               key={latest}
@@ -434,55 +428,26 @@ export function speakDrive(
   muted: boolean,
   opts?: { rate?: number; pitch?: number }
 ) {
-  if (muted) return;
-  if (typeof window === "undefined" || !window.speechSynthesis) return;
-  try {
-    window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.rate = opts?.rate ?? 1.0;
-    u.pitch = opts?.pitch ?? 0.9;
-    const voice = pickVoice();
-    if (voice) u.voice = voice;
-    window.speechSynthesis.speak(u);
-  } catch {
-    /* optional */
-  }
+  speakCoach(text, muted, {
+    rate: opts?.rate ?? COACH_RATE,
+    pitch: opts?.pitch ?? COACH_PITCH,
+  });
 }
 
-/** Estimate speaking duration (ms) for a script — used to wait before countdown. */
-export function estimateSpeakMs(text: string, rate = 0.95): number {
-  const words = text.trim().split(/\s+/).filter(Boolean).length;
-  const wpm = 165 * rate;
-  return Math.min(45000, Math.max(2500, Math.round((words / wpm) * 60_000) + 400));
-}
+export { estimateSpeakMs, speakCoachAndWait };
 
 /**
  * Speak a form coaching script (one-way). Respects mute.
- * Returns a promise that resolves after an estimated speak duration
- * (speechSynthesis has no reliable end event across browsers when cancelled).
+ * Returns a promise that resolves after an estimated speak duration.
  */
 export function speakFormScript(
   text: string,
   muted: boolean,
   opts?: { rate?: number; pitch?: number }
 ): Promise<void> {
-  const rate = opts?.rate ?? 0.95;
-  if (muted || typeof window === "undefined" || !window.speechSynthesis) {
-    return Promise.resolve();
-  }
-  try {
-    window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.rate = rate;
-    u.pitch = opts?.pitch ?? 0.88;
-    const voice = pickVoice();
-    if (voice) u.voice = voice;
-    window.speechSynthesis.speak(u);
-  } catch {
-    return Promise.resolve();
-  }
-  return new Promise((resolve) => {
-    window.setTimeout(resolve, estimateSpeakMs(text, rate));
+  return speakCoachAndWait(text, muted, {
+    rate: opts?.rate ?? 0.95,
+    pitch: opts?.pitch ?? 0.82,
   });
 }
 
