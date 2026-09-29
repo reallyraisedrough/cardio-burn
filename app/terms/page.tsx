@@ -3,7 +3,7 @@ import { DISCLAIMER } from "@/lib/exercises";
 
 export default function TermsPage() {
   return (
-    <div className="mx-auto max-w-lg px-4 py-8 pb-28">
+    <div className="mx-auto flex h-full max-w-lg flex-col overflow-hidden px-4 py-6">
       <Link href="/" className="text-sm text-zinc-400">
         ← Home
       </Link>

@@ -4,12 +4,12 @@ import { useEffect, useState } from "react";
 import { PLANS } from "@/lib/plans";
 import { isUnlocked, unlockDemo, setSubscriptionActive } from "@/lib/db";
 import type { PlanId } from "@/lib/types";
-import { Disclaimer } from "./Disclaimer";
 
 export function SubscribeClient() {
   const [unlocked, setUnlocked] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [planIndex, setPlanIndex] = useState(0);
   const hasStripeKey = Boolean(
     process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
   );
@@ -68,8 +68,8 @@ export function SubscribeClient() {
   }
 
   return (
-    <div className="mx-auto max-w-lg px-4 pb-28 pt-6">
-      <h1 className="text-3xl font-black text-white">Go Pro</h1>
+    <div className="page-in mx-auto flex h-full max-w-lg flex-col overflow-hidden px-4 pt-4 pb-[calc(4.75rem+env(safe-area-inset-bottom))]">
+      <h1 className="shrink-0 text-2xl font-black text-white">Go Pro</h1>
       <p className="mt-2 text-sm text-zinc-400">
         Unlock full progress history and keep crushing goals.
       </p>
@@ -80,8 +80,8 @@ export function SubscribeClient() {
         </div>
       )}
 
-      <ul className="mt-6 space-y-3">
-        {PLANS.map((plan) => (
+      <ul className="mt-4 min-h-0 flex-1 overflow-hidden">
+        {PLANS.slice(planIndex, planIndex + 1).map((plan) => (
           <li
             key={plan.id}
             className={`rounded-2xl border p-4 ${
@@ -115,9 +115,27 @@ export function SubscribeClient() {
           </li>
         ))}
       </ul>
+      <div className="mt-3 flex shrink-0 gap-2">
+        <button
+          type="button"
+          disabled={planIndex === 0}
+          onClick={() => setPlanIndex((n) => Math.max(0, n - 1))}
+          className="min-h-[44px] flex-1 rounded-xl border border-zinc-700 text-sm font-bold text-zinc-200 disabled:opacity-40"
+        >
+          Back
+        </button>
+        <button
+          type="button"
+          disabled={planIndex >= PLANS.length - 1}
+          onClick={() => setPlanIndex((n) => Math.min(PLANS.length - 1, n + 1))}
+          className="min-h-[44px] flex-1 rounded-xl border border-zinc-700 text-sm font-bold text-zinc-200 disabled:opacity-40"
+        >
+          Next plan
+        </button>
+      </div>
 
       {!hasStripeKey && (
-        <div className="mt-8 rounded-2xl border border-dashed border-zinc-700 bg-zinc-900/50 p-5">
+        <div className="mt-3 shrink-0 rounded-2xl border border-dashed border-zinc-700 bg-zinc-900/50 p-5">
           <p className="text-sm font-semibold text-zinc-200">
             No Stripe keys detected
           </p>
@@ -158,7 +176,6 @@ export function SubscribeClient() {
         <p className="mt-4 text-center text-sm text-zinc-300">{message}</p>
       )}
 
-      <Disclaimer className="mt-8" />
     </div>
   );
 }

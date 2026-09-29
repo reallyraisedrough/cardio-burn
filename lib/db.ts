@@ -1,6 +1,7 @@
 "use client";
 
 import { openDB, type DBSchema, type IDBPDatabase } from "idb";
+import { canStoreWorkoutData } from "./consent";
 import type { WorkoutSession } from "./types";
 
 interface CardioDB extends DBSchema {
@@ -20,10 +21,17 @@ const DB_VERSION = 1;
 
 let dbPromise: Promise<IDBPDatabase<CardioDB>> | null = null;
 
+function assertStorage() {
+  if (!canStoreWorkoutData()) {
+    throw new Error("CONSENT_REQUIRED");
+  }
+}
+
 function getDb() {
   if (typeof window === "undefined") {
     throw new Error("IndexedDB is only available in the browser");
   }
+  assertStorage();
   if (!dbPromise) {
     dbPromise = openDB<CardioDB>(DB_NAME, DB_VERSION, {
       upgrade(db) {
@@ -43,6 +51,7 @@ export async function saveSession(session: WorkoutSession): Promise<void> {
 }
 
 export async function getAllSessions(): Promise<WorkoutSession[]> {
+  if (!canStoreWorkoutData()) return [];
   const db = await getDb();
   const all = await db.getAll("sessions");
   return all.sort(
@@ -54,6 +63,7 @@ export async function getAllSessions(): Promise<WorkoutSession[]> {
 export async function getSessionsForExercise(
   slug: string
 ): Promise<WorkoutSession[]> {
+  if (!canStoreWorkoutData()) return [];
   const db = await getDb();
   const rows = await db.getAllFromIndex("sessions", "by-exercise", slug);
   return rows.sort(
@@ -88,6 +98,7 @@ const DEMO_UNLOCK_KEY = "demoUnlocked";
 const SUB_KEY = "subscriptionActive";
 
 export async function isUnlocked(): Promise<boolean> {
+  if (!canStoreWorkoutData()) return false;
   try {
     const demo = await getMeta<boolean>(DEMO_UNLOCK_KEY);
     const sub = await getMeta<boolean>(SUB_KEY);

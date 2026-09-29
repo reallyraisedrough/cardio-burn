@@ -11,6 +11,7 @@ import { Disclaimer } from "./Disclaimer";
 export function ProgressClient() {
   const [sessions, setSessions] = useState<WorkoutSession[]>([]);
   const [unlocked, setUnlocked] = useState<boolean | null>(null);
+  const [index, setIndex] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -30,7 +31,7 @@ export function ProgressClient() {
 
   if (unlocked === null) {
     return (
-      <div className="mx-auto max-w-lg px-4 py-12 text-center text-zinc-400">
+      <div className="mx-auto flex h-full max-w-lg items-center justify-center overflow-hidden px-4 text-center text-zinc-400">
         Loading progress…
       </div>
     );
@@ -38,7 +39,7 @@ export function ProgressClient() {
 
   if (!unlocked) {
     return (
-      <div className="mx-auto max-w-lg px-4 pb-28 pt-6">
+      <div className="page-in mx-auto flex h-full max-w-lg flex-col overflow-hidden px-4 pt-4 pb-[calc(4.75rem+env(safe-area-inset-bottom))]">
         <h1 className="text-3xl font-black text-white">Progress</h1>
         <div className="mt-6 rounded-2xl border border-zinc-800 bg-zinc-900 p-6 text-center">
           <p className="text-lg font-semibold text-zinc-200">
@@ -60,8 +61,8 @@ export function ProgressClient() {
   }
 
   return (
-    <div className="mx-auto max-w-lg px-4 pb-28 pt-6">
-      <h1 className="text-3xl font-black text-white">Progress</h1>
+    <div className="page-in mx-auto flex h-full max-w-lg flex-col overflow-hidden px-4 pt-4 pb-[calc(4.75rem+env(safe-area-inset-bottom))]">
+      <h1 className="text-2xl font-black text-white">Progress</h1>
       <p className="mt-1 text-sm text-zinc-400">
         History of sets, times, and goals.
       </p>
@@ -71,8 +72,9 @@ export function ProgressClient() {
           No sessions yet. Crush a workout from Home.
         </p>
       ) : (
-        <ul className="mt-6 space-y-4">
-          {sessions.map((s) => {
+        <>
+        <ul className="mt-4 min-h-0 flex-1 overflow-hidden">
+          {sessions.slice(index, index + 1).map((s) => {
             const ex = getExercise(s.exerciseSlug);
             return (
               <li
@@ -100,7 +102,7 @@ export function ProgressClient() {
                 </div>
                 <p className="mt-2 text-sm text-orange-400/90">{s.goal.label}</p>
                 <ul className="mt-3 space-y-1.5">
-                  {s.sets.map((set) => (
+                  {s.sets.slice(0, 4).map((set) => (
                     <li
                       key={set.setIndex}
                       className={`flex justify-between text-sm ${
@@ -125,6 +127,11 @@ export function ProgressClient() {
                     </li>
                   ))}
                 </ul>
+                {s.sets.length > 4 && (
+                  <p className="mt-1 text-xs text-zinc-500">
+                    +{s.sets.length - 4} more sets saved on this device
+                  </p>
+                )}
                 <p className="mt-2 text-xs text-zinc-500">
                   Total {formatMs(s.totalDurationMs)}
                   {typeof s.totalReps === "number"
@@ -135,8 +142,28 @@ export function ProgressClient() {
             );
           })}
         </ul>
+        {sessions.length > 1 && (
+          <div className="mt-3 flex gap-2">
+            <button
+              type="button"
+              disabled={index === 0}
+              onClick={() => setIndex((n) => Math.max(0, n - 1))}
+              className="min-h-[48px] flex-1 rounded-xl border border-zinc-700 text-sm font-bold text-zinc-200 disabled:opacity-40"
+            >
+              Back
+            </button>
+            <button
+              type="button"
+              disabled={index >= sessions.length - 1}
+              onClick={() => setIndex((n) => Math.min(sessions.length - 1, n + 1))}
+              className="min-h-[48px] flex-1 rounded-xl bg-orange-500 text-sm font-bold text-black disabled:opacity-40"
+            >
+              Next
+            </button>
+          </div>
+        )}
+        </>
       )}
-      <Disclaimer className="mt-8" />
     </div>
   );
 }

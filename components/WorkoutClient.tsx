@@ -7,6 +7,11 @@ import type { Exercise } from "@/lib/exercises";
 import { buildFormCoachScript } from "@/lib/exercises";
 import { getSessionsForExercise, saveSession } from "@/lib/db";
 import { computeGoal, evaluateGoal } from "@/lib/goals";
+import { canStoreWorkoutData } from "@/lib/consent";
+import {
+  goalFromPrescription,
+  type PrescribedMove,
+} from "@/lib/prescription";
 import {
   loadModePref,
   saveModePref,
@@ -31,7 +36,6 @@ import { createTimer, type TimerSnapshot } from "@/lib/timer";
 import { notifySetComplete } from "@/lib/audio";
 import { formatMs, uid } from "@/lib/format";
 import type { SetResult, WorkoutGoal, WorkoutSession } from "@/lib/types";
-import { Disclaimer } from "./Disclaimer";
 import { ModeSelector } from "./ModeSelector";
 import {
   CoachBot,
@@ -47,7 +51,23 @@ import {
 
 type Phase = "loading" | "ready" | "active" | "summary";
 
-export function WorkoutClient({ exercise }: { exercise: Exercise }) {
+export function WorkoutClient({
+  exercise,
+  prescribed,
+  modeLock,
+  stepLabel,
+  finishLabel,
+  onExit,
+  onFinished,
+}: {
+  exercise: Exercise;
+  prescribed?: PrescribedMove;
+  modeLock?: IntensityMode;
+  stepLabel?: string;
+  finishLabel?: string;
+  onExit?: () => void;
+  onFinished?: () => void;
+}) {
   const router = useRouter();
   const [phase, setPhase] = useState<Phase>("loading");
   const [goal, setGoal] = useState<WorkoutGoal | null>(null);
@@ -68,6 +88,9 @@ export function WorkoutClient({ exercise }: { exercise: Exercise }) {
   const [preCount, setPreCount] = useState<number | null>(null);
   const [showGo, setShowGo] = useState(false);
   const [announce, setAnnounce] = useState<string | null>(null);
+  const [saveNote, setSaveNote] = useState<string | null>(null);
+  const [readyPane, setReadyPane] = useState<"brief" | "options">("brief");
+  const [setPage, setSetPage] = useState(0);
   const countdownBusy = useRef(false);
   const pendingStart = useRef(false);
 
@@ -92,37 +115,43 @@ export function WorkoutClient({ exercise }: { exercise: Exercise }) {
 
   useEffect(() => {
     let cancelled = false;
+    const m = modeLock ?? loadModePref();
+    setMode(m);
+    if (prescribed) {
+      setHistory([]);
+      setGoal(goalFromPrescription(prescribed, m));
+      setPhase("ready");
+      return () => {
+        cancelled = true;
+        timerRef.current?.destroy();
+      };
+    }
     (async () => {
       const hist = await getSessionsForExercise(exercise.slug);
       if (cancelled) return;
-      const m = loadModePref();
-      setMode(m);
       setHistory(hist);
-      const g = computeGoal(exercise, hist, m);
-      setGoal(g);
+      setGoal(computeGoal(exercise, hist, m));
       setPhase("ready");
     })().catch(() => {
-      const m = loadModePref();
-      setMode(m);
+      if (cancelled) return;
       setHistory([]);
-      const g = computeGoal(exercise, [], m);
-      setGoal(g);
+      setGoal(computeGoal(exercise, [], m));
       setPhase("ready");
     });
     return () => {
       cancelled = true;
       timerRef.current?.destroy();
     };
-  }, [exercise]);
+  }, [exercise, prescribed, modeLock]);
 
   const onModeChange = useCallback(
     (m: IntensityMode) => {
-      if (phase !== "ready") return;
+      if (phase !== "ready" || modeLock) return;
       setMode(m);
       saveModePref(m);
       setGoal(computeGoal(exercise, history, m));
     },
-    [phase, exercise, history]
+    [phase, exercise, history, modeLock]
   );
 
   const teardownTimer = () => {
@@ -288,8 +317,21 @@ export function WorkoutClient({ exercise }: { exercise: Exercise }) {
       totalDurationMs,
       totalReps,
     };
-    await saveSession(session);
-    router.push("/progress");
+    if (!canStoreWorkoutData()) {
+      setSaveNote(
+        "Not saved. History stays off until you accept the data notice."
+      );
+      if (onFinished) onFinished();
+      return;
+    }
+    try {
+      await saveSession(session);
+    } catch {
+      setSaveNote("Could not save this session.");
+      return;
+    }
+    if (onFinished) onFinished();
+    else router.push("/progress");
   };
 
   const handleCoachCommand = useCallback(
@@ -333,107 +375,171 @@ export function WorkoutClient({ exercise }: { exercise: Exercise }) {
 
   if (phase === "loading" || !goal) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-zinc-950 text-zinc-400">
+      <div className="flex h-full items-center justify-center overflow-hidden bg-zinc-950 text-zinc-400">
         Preparing workout…
       </div>
     );
   }
 
+  const exitNode = onExit ? (
+    <button
+      type="button"
+      onClick={() => {
+        teardownTimer();
+        onExit();
+      }}
+      className="text-sm text-zinc-400"
+    >
+      ← Back
+    </button>
+  ) : (
+    <Link
+      href={`/exercise/${exercise.slug}`}
+      className="text-sm text-zinc-400"
+      onClick={() => teardownTimer()}
+    >
+      ← Back
+    </Link>
+  );
+
   if (phase === "ready") {
     return (
-      <div className="mx-auto flex min-h-screen max-w-lg flex-col px-4 py-6">
-        <Link href={`/exercise/${exercise.slug}`} className="text-sm text-zinc-400">
-          ← Back
-        </Link>
-        <h1 className="mt-6 text-3xl font-black text-white">
-          {exercise.emoji} {exercise.name}
-        </h1>
-        <ModeSelector
-          className="mt-6"
-          value={mode}
-          onChange={onModeChange}
-          variant="cards"
-        />
-
-        <div className="mt-6 rounded-2xl border border-orange-500/40 bg-orange-500/10 p-5">
-          <p className="text-sm font-bold uppercase tracking-wider text-orange-400">
-            Today&apos;s goal
-          </p>
-          <p className="mt-2 text-2xl font-black text-white">{goal.label}</p>
-          <p className="mt-2 text-sm text-zinc-300">
-            {goal.workingSets} working sets
-            {goal.burnout
-              ? " + 1 final BURNOUT (go to max, count-up until Done)"
-              : ""}
-            {exercise.tracking === "reps" && goal.targetReps
-              ? `. Target ~${goal.targetReps} reps per set (${goal.targetSecPerSet}s pace).`
-              : `. Target ${goal.targetSecPerSet}s per working set.`}
-          </p>
+      <div className="mx-auto flex h-full max-w-lg flex-col overflow-hidden px-4 py-3">
+        <div className="flex items-center justify-between">
+          {exitNode}
+          {stepLabel && (
+            <p className="text-xs font-semibold text-zinc-500">{stepLabel}</p>
+          )}
         </div>
-
-        <CountdownSelector
-          className="mt-6"
-          value={countdownSec}
-          onChange={setCountdownSec}
-        />
-
-        <ExplainFormToggle
-          className="mt-4"
-          value={explainForm}
-          onChange={setExplainForm}
-        />
-
-        <div className="mt-4">
-          <CoachBot
-            active={false}
-            muted={muted}
-            onMuteChange={setMuted}
-            onCommand={handleCoachCommand}
-            announce={announce}
-            onAnnounceConsumed={() => setAnnounce(null)}
-          />
-        </div>
-
-        <button
-          type="button"
-          onClick={beginWorkout}
-          className="mt-8 flex min-h-[56px] w-full items-center justify-center rounded-2xl bg-orange-500 text-lg font-bold text-black"
-        >
-          Begin
-        </button>
-        <Disclaimer className="mt-auto pt-8" />
+        {readyPane === "brief" ? (
+          <>
+            <div className="mt-3 flex items-center gap-3">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={exercise.formExecImage || exercise.formImage}
+                alt={`Form for ${exercise.name}`}
+                className="h-20 w-20 shrink-0 rounded-2xl object-cover"
+                width={80}
+                height={80}
+              />
+              <div className="min-w-0">
+                <h1 className="truncate text-2xl font-black text-white">
+                  {exercise.emoji} {exercise.name}
+                </h1>
+                <p className="mt-1 text-sm text-orange-300">{goal.label}</p>
+                <p className="mt-1 text-xs text-zinc-400">
+                  {goal.workingSets} working sets + burnout last
+                  {exercise.tracking === "reps" && goal.targetReps
+                    ? ` · ${goal.targetReps} reps · ${goal.targetSecPerSet}s`
+                    : ` · ${goal.targetSecPerSet}s`}
+                </p>
+              </div>
+            </div>
+            <CountdownSelector
+              className="mt-4"
+              value={countdownSec}
+              onChange={setCountdownSec}
+            />
+            <ExplainFormToggle
+              className="mt-3"
+              value={explainForm}
+              onChange={setExplainForm}
+            />
+            <button
+              type="button"
+              onClick={() => setReadyPane("options")}
+              className="mt-3 flex min-h-[44px] w-full items-center justify-center rounded-xl border border-zinc-700 text-sm font-semibold text-zinc-200"
+            >
+              Coach & options
+            </button>
+            <button
+              type="button"
+              onClick={beginWorkout}
+              className="mt-auto flex min-h-[52px] w-full items-center justify-center rounded-2xl bg-orange-500 text-lg font-bold text-black"
+            >
+              Begin
+            </button>
+          </>
+        ) : (
+          <>
+            <h1 className="mt-3 text-xl font-black text-white">Coach & options</h1>
+            {!modeLock && (
+              <ModeSelector
+                className="mt-3"
+                value={mode}
+                onChange={onModeChange}
+                variant="segmented"
+              />
+            )}
+            <div className="mt-3 min-h-0 flex-1 overflow-hidden">
+              <CoachBot
+                active={false}
+                muted={muted}
+                onMuteChange={setMuted}
+                onCommand={handleCoachCommand}
+                announce={announce}
+                onAnnounceConsumed={() => setAnnounce(null)}
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => setReadyPane("brief")}
+              className="mt-3 flex min-h-[44px] w-full items-center justify-center rounded-xl border border-zinc-700 text-sm font-semibold text-zinc-300"
+            >
+              Back to exercise
+            </button>
+            <button
+              type="button"
+              onClick={beginWorkout}
+              className="mt-2 flex min-h-[52px] w-full items-center justify-center rounded-2xl bg-orange-500 text-lg font-bold text-black"
+            >
+              Begin
+            </button>
+          </>
+        )}
       </div>
     );
   }
 
   if (phase === "summary") {
+    const allowSave = canStoreWorkoutData();
+    const pageSize = 4;
+    const pageCount = Math.max(1, Math.ceil(sets.length / pageSize));
+    const visible = sets.slice(setPage * pageSize, setPage * pageSize + pageSize);
+    const primary = allowSave
+      ? finishLabel
+        ? `Save & ${finishLabel.toLowerCase()}`
+        : "Save session"
+      : finishLabel ?? "Continue without saving";
     return (
-      <div className="mx-auto flex min-h-screen max-w-lg flex-col px-4 py-6">
-        <h1 className="text-3xl font-black text-white">Session complete</h1>
+      <div className="mx-auto flex h-full max-w-lg flex-col overflow-hidden px-4 py-3">
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-black text-white">Exercise done</h1>
+          {stepLabel && (
+            <p className="text-xs font-semibold text-zinc-500">{stepLabel}</p>
+          )}
+        </div>
         <div
-          className={`mt-6 rounded-2xl border p-5 ${
+          className={`mt-3 rounded-2xl border p-4 ${
             metGoal
               ? "border-emerald-500/50 bg-emerald-500/10"
               : "border-zinc-700 bg-zinc-900"
           }`}
         >
-          <p className="text-sm font-bold uppercase tracking-wider text-zinc-400">
-            vs goal
-          </p>
-          <p className="mt-1 text-xl font-bold text-white">{goal.label}</p>
+          <p className="text-sm font-bold text-white">{goal.label}</p>
           <p
-            className={`mt-3 text-2xl font-black ${
+            className={`mt-1 text-lg font-black ${
               metGoal ? "text-emerald-400" : "text-zinc-300"
             }`}
           >
-            {metGoal ? "Goal crushed ✓" : "Below goal — next time"}
+            {metGoal ? "Goal crushed" : "Below goal"}
           </p>
         </div>
-        <ul className="mt-6 space-y-2">
-          {sets.map((s) => (
+        <ul className="mt-3 min-h-0 flex-1 space-y-1.5 overflow-hidden">
+          {visible.map((s) => (
             <li
               key={s.setIndex}
-              className={`flex justify-between rounded-xl px-4 py-3 text-sm ${
+              className={`flex justify-between rounded-xl px-3 py-2 text-sm ${
                 s.isBurnout
                   ? "bg-red-500/15 text-red-300"
                   : "bg-zinc-900 text-zinc-200"
@@ -447,36 +553,74 @@ export function WorkoutClient({ exercise }: { exercise: Exercise }) {
             </li>
           ))}
         </ul>
+        {pageCount > 1 && (
+          <div className="mt-2 flex gap-2">
+            <button
+              type="button"
+              disabled={setPage === 0}
+              onClick={() => setSetPage((n) => Math.max(0, n - 1))}
+              className="min-h-[40px] flex-1 rounded-xl border border-zinc-700 text-sm font-semibold text-zinc-300 disabled:opacity-40"
+            >
+              Previous sets
+            </button>
+            <button
+              type="button"
+              disabled={setPage >= pageCount - 1}
+              onClick={() => setSetPage((n) => Math.min(pageCount - 1, n + 1))}
+              className="min-h-[40px] flex-1 rounded-xl border border-zinc-700 text-sm font-semibold text-zinc-300 disabled:opacity-40"
+            >
+              Next sets
+            </button>
+          </div>
+        )}
+        {!allowSave && (
+          <p className="mt-2 text-xs text-amber-400">
+            Saves are off until you accept the data notice.
+          </p>
+        )}
+        {saveNote && (
+          <p className="mt-2 text-xs text-zinc-400" role="status">
+            {saveNote}
+          </p>
+        )}
         <button
           type="button"
           onClick={saveAndDone}
-          className="mt-8 flex min-h-[56px] w-full items-center justify-center rounded-2xl bg-orange-500 text-lg font-bold text-black"
+          className="mt-3 flex min-h-[52px] w-full items-center justify-center rounded-2xl bg-orange-500 text-base font-bold text-black"
         >
-          Save session
+          {primary}
         </button>
-        <Link
-          href="/"
-          className="mt-3 flex min-h-[48px] items-center justify-center text-sm text-zinc-400"
-        >
-          Discard & go home
-        </Link>
+        {onExit ? (
+          <button
+            type="button"
+            onClick={onExit}
+            className="mt-2 flex min-h-[40px] items-center justify-center text-sm text-zinc-400"
+          >
+            Exit workout
+          </button>
+        ) : (
+          <Link
+            href="/"
+            className="mt-2 flex min-h-[40px] items-center justify-center text-sm text-zinc-400"
+          >
+            Discard & go home
+          </Link>
+        )}
       </div>
     );
   }
 
-  // active
   const displayTime = isBurnout
     ? formatMs(timerSnap?.elapsedMs ?? 0)
     : formatMs(timerSnap?.remainingMs ?? targetMs);
 
   return (
-    <div className="relative mx-auto flex min-h-screen max-w-lg flex-col px-4 py-6 bg-zinc-950">
-      {/* Big GO / countdown overlay */}
+    <div className="relative mx-auto flex h-full max-w-lg flex-col overflow-hidden bg-zinc-950 px-4 py-3">
       {(preCount !== null || showGo) && (
         <div className="pointer-events-none absolute inset-0 z-40 flex items-center justify-center bg-zinc-950/70">
           <p
-            className={`font-black tabular-nums text-orange-500 drop-shadow-[0_0_40px_rgba(249,115,22,0.6)] ${
-              showGo ? "text-8xl animate-pulse" : "text-9xl"
+            className={`font-black tabular-nums text-orange-500 ${
+              showGo ? "text-7xl" : "text-8xl"
             }`}
           >
             {showGo ? "GO" : preCount}
@@ -485,19 +629,34 @@ export function WorkoutClient({ exercise }: { exercise: Exercise }) {
       )}
 
       <div className="flex items-center justify-between">
-        <Link
-          href={`/exercise/${exercise.slug}`}
-          className="text-sm text-zinc-500"
-          onClick={() => teardownTimer()}
-        >
-          Exit
-        </Link>
-        <p className="text-sm font-semibold text-zinc-400">
+        {onExit ? (
+          <button
+            type="button"
+            className="text-sm text-zinc-500"
+            onClick={() => {
+              teardownTimer();
+              onExit();
+            }}
+          >
+            Exit
+          </button>
+        ) : (
+          <Link
+            href={`/exercise/${exercise.slug}`}
+            className="text-sm text-zinc-500"
+            onClick={() => teardownTimer()}
+          >
+            Exit
+          </Link>
+        )}
+        <p className="text-xs font-semibold text-zinc-400">
+          {stepLabel ? `${stepLabel} · ` : ""}
           {setIndex + 1} / {totalSets}
+          {isBurnout ? " · burnout" : ""}
         </p>
       </div>
 
-      <div className="mt-4">
+      <div className="mt-2">
         <CoachBot
           active
           muted={muted}
@@ -509,58 +668,36 @@ export function WorkoutClient({ exercise }: { exercise: Exercise }) {
         />
       </div>
 
-      <div className="mt-3 flex items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-900/70 p-2">
+      <div className="mt-2 flex items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-900/70 p-2">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={exercise.formExecImage || exercise.formImage}
-          alt={`${exercise.name} execution reference`}
-          className="h-14 w-14 shrink-0 rounded-lg object-cover object-center"
-          width={56}
-          height={56}
+          alt={`${exercise.name} form`}
+          className="h-12 w-12 shrink-0 rounded-lg object-cover"
+          width={48}
+          height={48}
         />
-        <div className="min-w-0">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-orange-400">
-            Form ref · exec
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-bold text-white">{exercise.name}</p>
+          <p className="truncate text-xs text-zinc-400">
+            {isBurnout
+              ? "Burnout last — count up, then Done"
+              : exercise.tracking === "reps" && goal.targetReps
+                ? `${goal.targetReps} reps · ${goal.targetSecPerSet}s`
+                : `${goal.targetSecPerSet}s`}
           </p>
-          <p className="truncate text-xs text-zinc-400">{exercise.name}</p>
         </div>
       </div>
 
-      <CountdownSelector
-        className="mt-4"
-        value={countdownSec}
-        onChange={setCountdownSec}
-      />
-
-      <ExplainFormToggle
-        className="mt-3"
-        value={explainForm}
-        onChange={setExplainForm}
-      />
-
       <div
-        className={`mt-4 rounded-2xl border p-5 ${
+        className={`mt-2 rounded-2xl border px-4 py-3 ${
           isBurnout
-            ? "border-red-500 bg-red-950/40 shadow-[0_0_40px_rgba(239,68,68,0.25)]"
+            ? "border-red-500 bg-red-950/40"
             : "border-zinc-800 bg-zinc-900"
         }`}
       >
         <p
-          className={`text-sm font-black uppercase tracking-widest ${
-            isBurnout ? "text-red-400" : "text-orange-400"
-          }`}
-        >
-          {isBurnout ? "BURNOUT — go to max" : `Working set ${setIndex + 1}`}
-        </p>
-        <p className="mt-1 text-zinc-400 text-sm">
-          {isBurnout
-            ? "Count-up only. Push until you tap Done."
-            : exercise.tracking === "reps" && goal.targetReps
-              ? `Target ${goal.targetReps} reps · ${goal.targetSecPerSet}s · alarm at completion`
-              : `Target ${goal.targetSecPerSet}s · alarm at completion`}
-        </p>
-        <p
-          className={`mt-6 text-center font-mono text-6xl font-black tabular-nums ${
+          className={`text-center font-mono text-5xl font-black tabular-nums ${
             isBurnout ? "text-red-400" : "text-white"
           }`}
         >
@@ -568,7 +705,7 @@ export function WorkoutClient({ exercise }: { exercise: Exercise }) {
         </p>
       </div>
 
-      <div className="mt-6 grid grid-cols-3 gap-3">
+      <div className="mt-2 grid grid-cols-3 gap-2">
         <button
           type="button"
           onClick={() => {
@@ -576,14 +713,14 @@ export function WorkoutClient({ exercise }: { exercise: Exercise }) {
             if (!timerSnap?.running) void runPreCountdown(true);
             else timerRef.current?.start();
           }}
-          className="flex min-h-[56px] items-center justify-center rounded-xl bg-emerald-600 font-bold text-white active:scale-[0.97]"
+          className="flex min-h-[48px] items-center justify-center rounded-xl bg-emerald-600 text-sm font-bold text-white"
         >
           Start
         </button>
         <button
           type="button"
           onClick={() => timerRef.current?.pause()}
-          className="flex min-h-[56px] items-center justify-center rounded-xl bg-zinc-700 font-bold text-white active:scale-[0.97]"
+          className="flex min-h-[48px] items-center justify-center rounded-xl bg-zinc-700 text-sm font-bold text-white"
         >
           Pause
         </button>
@@ -593,55 +730,45 @@ export function WorkoutClient({ exercise }: { exercise: Exercise }) {
             alarmFired.current = false;
             timerRef.current?.reset();
           }}
-          className="flex min-h-[56px] items-center justify-center rounded-xl bg-zinc-800 font-bold text-zinc-200 active:scale-[0.97]"
+          className="flex min-h-[48px] items-center justify-center rounded-xl bg-zinc-800 text-sm font-bold text-zinc-200"
         >
           Reset
         </button>
       </div>
 
       {exercise.tracking === "reps" && (
-        <div className="mt-6 rounded-2xl border border-zinc-800 bg-zinc-900 p-4">
-          <p className="text-sm font-semibold text-zinc-400">Reps this set</p>
-          <div className="mt-3 flex items-center justify-center gap-6">
-            <button
-              type="button"
-              aria-label="Decrease reps"
-              onClick={() => setReps((r) => Math.max(0, r - 1))}
-              className="flex h-14 w-14 items-center justify-center rounded-full bg-zinc-800 text-2xl font-bold text-white"
-            >
-              −
-            </button>
-            <span className="min-w-[4rem] text-center font-mono text-4xl font-black text-white">
-              {reps}
-            </span>
-            <button
-              type="button"
-              aria-label="Increase reps"
-              onClick={() => setReps((r) => r + 1)}
-              className="flex h-14 w-14 items-center justify-center rounded-full bg-zinc-800 text-2xl font-bold text-white"
-            >
-              +
-            </button>
-          </div>
+        <div className="mt-2 flex items-center justify-center gap-4">
+          <button
+            type="button"
+            aria-label="Decrease reps"
+            onClick={() => setReps((r) => Math.max(0, r - 1))}
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-zinc-800 text-xl font-bold text-white"
+          >
+            −
+          </button>
+          <span className="min-w-[3rem] text-center font-mono text-3xl font-black text-white">
+            {reps}
+          </span>
+          <button
+            type="button"
+            aria-label="Increase reps"
+            onClick={() => setReps((r) => r + 1)}
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-zinc-800 text-xl font-bold text-white"
+          >
+            +
+          </button>
         </div>
       )}
 
       <button
         type="button"
         onClick={finishSet}
-        className={`mt-auto flex min-h-[60px] w-full items-center justify-center rounded-2xl text-lg font-black ${
-          isBurnout
-            ? "bg-red-500 text-white shadow-lg shadow-red-500/30"
-            : "bg-orange-500 text-black"
+        className={`mt-auto flex min-h-[52px] w-full items-center justify-center rounded-2xl text-base font-black ${
+          isBurnout ? "bg-red-500 text-white" : "bg-orange-500 text-black"
         }`}
       >
-        {isBurnout
-          ? "Done — finish burnout"
-          : setIndex + 1 >= totalSets
-            ? "Finish set"
-            : "Done — next set"}
+        {isBurnout ? "Done — finish burnout" : "Done — next set"}
       </button>
-      <Disclaimer className="mt-4" />
     </div>
   );
 }

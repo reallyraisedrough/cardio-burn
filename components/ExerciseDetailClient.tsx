@@ -12,7 +12,6 @@ import {
   type IntensityMode,
 } from "@/lib/modes";
 import { formatMs, formatDate } from "@/lib/format";
-import { Disclaimer } from "./Disclaimer";
 import { ModeSelector } from "./ModeSelector";
 import {
   loadMutePref,
@@ -26,6 +25,7 @@ export function ExerciseDetailClient({ exercise }: { exercise: Exercise }) {
   const [goal, setGoal] = useState<WorkoutGoal | null>(null);
   const [mode, setMode] = useState<IntensityMode>("moderate");
   const [hearing, setHearing] = useState(false);
+  const [cueIndex, setCueIndex] = useState(0);
 
   const applyGoal = useCallback(
     (m: IntensityMode, hist: WorkoutSession[]) => {
@@ -74,7 +74,7 @@ export function ExerciseDetailClient({ exercise }: { exercise: Exercise }) {
   const execSrc = exercise.formExecImage || exercise.formImage;
 
   return (
-    <div className="mx-auto max-w-lg px-4 pb-28 pt-6">
+    <div className="page-in mx-auto flex h-full max-w-lg flex-col overflow-hidden px-4 pt-3 pb-[calc(4.75rem+env(safe-area-inset-bottom))]">
       <Link
         href="/"
         className="inline-flex min-h-11 items-center text-sm font-medium text-zinc-400 hover:text-white"
@@ -82,23 +82,23 @@ export function ExerciseDetailClient({ exercise }: { exercise: Exercise }) {
         ← Exercises
       </Link>
 
-      <div className="mt-4 flex items-center gap-4">
+      <div className="mt-2 flex items-center gap-3">
         <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-zinc-800 text-4xl">
           {exercise.emoji}
         </span>
         <div>
-          <h1 className="text-3xl font-black text-white">{exercise.name}</h1>
+          <h1 className="text-2xl font-black text-white">{exercise.name}</h1>
           <p className="text-sm text-zinc-400">{exercise.description}</p>
         </div>
       </div>
 
-      <div className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <div className="mt-3 grid min-h-0 flex-1 grid-cols-2 gap-2">
         <figure className="overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={startSrc}
             alt={`Starting pose for ${exercise.name}`}
-            className="mx-auto h-auto max-h-[320px] w-full object-contain object-center sm:max-h-[360px]"
+            className="mx-auto h-auto h-full max-h-full w-full object-contain object-center"
             width={800}
             height={600}
           />
@@ -111,7 +111,7 @@ export function ExerciseDetailClient({ exercise }: { exercise: Exercise }) {
           <img
             src={execSrc}
             alt={`Execution pose for ${exercise.name}`}
-            className="mx-auto h-auto max-h-[320px] w-full object-contain object-center sm:max-h-[360px]"
+            className="mx-auto h-auto h-full max-h-full w-full object-contain object-center"
             width={800}
             height={600}
           />
@@ -130,33 +130,34 @@ export function ExerciseDetailClient({ exercise }: { exercise: Exercise }) {
         {hearing ? "Speaking form…" : "Hear proper form"}
       </button>
 
-      <section className="mt-8">
-        <h2 className="text-sm font-bold uppercase tracking-wider text-orange-400">
-          Form cues
-        </h2>
-        <ol className="mt-3 space-y-3">
-          {exercise.formCues.map((cue, i) => (
-            <li
-              key={i}
-              className="flex gap-3 rounded-xl border border-zinc-800 bg-zinc-900/60 p-4"
-            >
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-orange-500/20 text-sm font-bold text-orange-400">
-                {i + 1}
-              </span>
-              <p className="text-base leading-snug text-zinc-200">{cue}</p>
-            </li>
-          ))}
-        </ol>
-      </section>
+      <div className="mt-2 flex shrink-0 items-center gap-2">
+        <button
+          type="button"
+          className="min-h-[40px] rounded-xl border border-zinc-700 px-3 text-xs font-bold text-zinc-300"
+          onClick={() => setCueIndex((n) => (n === 0 ? exercise.formCues.length - 1 : n - 1))}
+        >
+          Cue
+        </button>
+        <p className="min-w-0 flex-1 text-xs leading-snug text-zinc-300">
+          {cueIndex + 1}/{exercise.formCues.length} {exercise.formCues[cueIndex]}
+        </p>
+        <button
+          type="button"
+          className="min-h-[40px] rounded-xl border border-zinc-700 px-3 text-xs font-bold text-zinc-300"
+          onClick={() => setCueIndex((n) => (n + 1) % exercise.formCues.length)}
+        >
+          Next
+        </button>
+      </div>
 
       <ModeSelector
-        className="mt-8"
+        className="mt-2 shrink-0"
         value={mode}
         onChange={onModeChange}
         variant="segmented"
       />
 
-      <section className="mt-6 rounded-2xl border border-zinc-800 bg-zinc-900 p-4">
+      <section className="mt-2 shrink-0 rounded-2xl border border-zinc-800 bg-zinc-900 p-4">
         <h2 className="text-sm font-bold uppercase tracking-wider text-zinc-400">
           Your goal
         </h2>
@@ -192,12 +193,11 @@ export function ExerciseDetailClient({ exercise }: { exercise: Exercise }) {
 
       <Link
         href={`/workout/${exercise.slug}`}
-        className="mt-8 flex min-h-[56px] w-full items-center justify-center rounded-2xl bg-orange-500 text-lg font-bold text-black shadow-lg shadow-orange-500/25 transition active:scale-[0.98] hover:bg-orange-400"
+        className="mt-2 flex min-h-[48px] shrink-0 w-full items-center justify-center rounded-2xl bg-orange-500 text-lg font-bold text-black shadow-lg shadow-orange-500/25 transition active:scale-[0.98] hover:bg-orange-400"
       >
         Start workout
       </Link>
 
-      <Disclaimer className="mt-6" />
     </div>
   );
 }

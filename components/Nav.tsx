@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useChrome } from "./Chrome";
 
 const links = [
   { href: "/", label: "Home", icon: "🏠" },
@@ -12,7 +13,9 @@ const links = [
 
 export function Nav() {
   const pathname = usePathname();
+  const { hideNav } = useChrome();
   const hide =
+    hideNav ||
     pathname?.startsWith("/workout/") ||
     pathname === "/privacy" ||
     pathname === "/terms";

@@ -10,11 +10,14 @@ import {
 } from "@/lib/modes";
 import { getFoodHints, getSchedulePlan } from "@/lib/schedule";
 import { ModeSelector } from "./ModeSelector";
-import { Disclaimer } from "./Disclaimer";
 import { DailyInspirationSettings } from "./DailyInspirationSettings";
+
+const STEPS = ["Schedule", "Moves", "Fuel", "Reminders"] as const;
 
 export function PlanClient() {
   const [mode, setMode] = useState<IntensityMode>("moderate");
+  const [step, setStep] = useState(0);
+  const [moveIndex, setMoveIndex] = useState(0);
 
   useEffect(() => {
     setMode(loadModePref());
@@ -28,145 +31,104 @@ export function PlanClient() {
   const plan = getSchedulePlan(mode);
   const food = getFoodHints(mode);
   const preset = MODE_PRESETS[mode];
+  const moves =
+    plan.sampleCombos.length > 0
+      ? plan.sampleCombos.map((c) => ({ label: c.label, exercises: c.exercises }))
+      : (plan.splitDays ?? []).map((d) => ({
+          label: d.dayLabel,
+          exercises: d.exercises,
+        }));
+  const shown = moves[moveIndex];
 
   return (
-    <div className="mx-auto max-w-lg px-4 pb-28 pt-6">
-      <header className="mb-6">
-        <p className="text-sm font-semibold uppercase tracking-widest text-orange-400">
-          Schedule & fuel
+    <div className="page-in mx-auto flex h-full max-w-lg flex-col overflow-hidden px-4 pt-4 pb-[calc(4.75rem+env(safe-area-inset-bottom))]">
+      <header className="shrink-0">
+        <p className="text-xs font-semibold uppercase tracking-widest text-orange-400">
+          {STEPS[step]} · {step + 1}/{STEPS.length}
         </p>
-        <h1 className="mt-1 text-3xl font-black tracking-tight text-white">
-          Your plan
-        </h1>
-        <p className="mt-2 text-sm text-zinc-400">
-          Weekly exercise cadence and practical food tips for{" "}
-          {preset.label} mode — coaching hints only, not medical advice.
-        </p>
+        <h1 className="mt-1 text-2xl font-black text-white">Your plan</h1>
       </header>
 
-      <ModeSelector
-        className="mb-6"
-        value={mode}
-        onChange={onModeChange}
-        variant="segmented"
-      />
-
-      <section className="mb-6 rounded-2xl border border-zinc-800 bg-zinc-900/70 p-4">
-        <h2 className="text-sm font-bold uppercase tracking-wider text-orange-400">
-          {plan.title}
-        </h2>
-        <dl className="mt-3 space-y-2 text-sm">
+      <div className="mt-3 min-h-0 flex-1 overflow-hidden">
+        {step === 0 && (
           <div>
-            <dt className="text-zinc-500">Frequency</dt>
-            <dd className="font-semibold text-zinc-100">{plan.frequency}</dd>
+            <ModeSelector value={mode} onChange={onModeChange} variant="segmented" />
+            <section className="mt-3 rounded-2xl border border-zinc-800 bg-zinc-900/70 p-4">
+              <h2 className="text-sm font-bold uppercase tracking-wider text-orange-400">
+                {plan.title}
+              </h2>
+              <p className="mt-2 text-sm text-zinc-200">{plan.frequency}</p>
+              <p className="mt-1 text-sm text-zinc-300">{plan.exercisesPerSession}</p>
+              <p className="mt-1 text-sm text-zinc-400">
+                {preset.workingSets} working sets + burnout each
+              </p>
+              <p className="mt-3 text-sm text-zinc-400">{plan.summary}</p>
+            </section>
           </div>
-          <div>
-            <dt className="text-zinc-500">Per session</dt>
-            <dd className="font-semibold text-zinc-100">
-              {plan.exercisesPerSession}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-zinc-500">Sets</dt>
-            <dd className="font-semibold text-zinc-100">
-              {preset.workingSets} working sets + burnout each exercise
-            </dd>
-          </div>
-        </dl>
-        <p className="mt-3 text-sm leading-relaxed text-zinc-400">
-          {plan.summary}
-        </p>
-        <ul className="mt-3 space-y-1.5">
-          {plan.tips.map((t) => (
-            <li key={t} className="text-xs text-zinc-500">
-              · {t}
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      {plan.sampleCombos.length > 0 && (
-        <section className="mb-6">
-          <h2 className="mb-3 text-sm font-bold uppercase tracking-wider text-zinc-400">
-            Sample rotations
-          </h2>
-          <ul className="flex flex-col gap-3">
-            {plan.sampleCombos.map((combo) => (
-              <li
-                key={combo.label}
-                className="rounded-2xl border border-zinc-800 bg-zinc-950/80 p-4"
+        )}
+        {step === 1 && shown && (
+          <section className="rounded-2xl border border-zinc-800 bg-zinc-950/80 p-4">
+            <p className="text-xs text-zinc-500">
+              {moveIndex + 1} / {moves.length}
+            </p>
+            <p className="mt-1 font-bold text-white">{shown.label}</p>
+            <ul className="mt-3 flex flex-wrap gap-2">
+              {shown.exercises.map((ex) => (
+                <li key={ex.slug}>
+                  <Link
+                    href={`/exercise/${ex.slug}`}
+                    className="inline-flex items-center gap-1 rounded-full border border-zinc-700 bg-zinc-900 px-2.5 py-1 text-xs font-semibold text-zinc-200"
+                  >
+                    <span aria-hidden>{ex.emoji}</span>
+                    {ex.name}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            {moves.length > 1 && (
+              <button
+                type="button"
+                className="mt-4 min-h-[44px] w-full rounded-xl border border-zinc-700 text-sm font-bold text-zinc-200"
+                onClick={() => setMoveIndex((n) => (n + 1) % moves.length)}
               >
-                <p className="font-bold text-white">{combo.label}</p>
-                <ul className="mt-2 flex flex-wrap gap-2">
-                  {combo.exercises.map((ex) => (
-                    <li key={ex.slug}>
-                      <Link
-                        href={`/exercise/${ex.slug}`}
-                        className="inline-flex items-center gap-1 rounded-full border border-zinc-700 bg-zinc-900 px-2.5 py-1 text-xs font-semibold text-zinc-200 hover:border-orange-500/50 hover:text-orange-400"
-                      >
-                        <span aria-hidden>{ex.emoji}</span>
-                        {ex.name}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
+                Next rotation
+              </button>
+            )}
+          </section>
+        )}
+        {step === 2 && (
+          <section className="rounded-2xl border border-zinc-800 bg-zinc-900/70 p-4">
+            <h2 className="text-sm font-bold uppercase tracking-wider text-orange-400">
+              {food.title}
+            </h2>
+            <p className="mt-2 text-sm text-zinc-300">{food.focus}</p>
+            <p className="mt-3 text-sm text-zinc-400">{food.tips[0]}</p>
+            <p className="mt-2 text-xs text-zinc-500">
+              {food.tips.slice(1, 3).join(" ")}
+            </p>
+          </section>
+        )}
+        {step === 3 && <DailyInspirationSettings />}
+      </div>
 
-      {plan.splitDays && plan.splitDays.length > 0 && (
-        <section className="mb-6">
-          <h2 className="mb-3 text-sm font-bold uppercase tracking-wider text-zinc-400">
-            Two-day library split
-          </h2>
-          <ul className="flex flex-col gap-3">
-            {plan.splitDays.map((day) => (
-              <li
-                key={day.dayLabel}
-                className="rounded-2xl border border-zinc-800 bg-zinc-950/80 p-4"
-              >
-                <p className="font-bold text-white">{day.dayLabel}</p>
-                <ul className="mt-2 flex flex-wrap gap-2">
-                  {day.exercises.map((ex) => (
-                    <li key={ex.slug}>
-                      <Link
-                        href={`/exercise/${ex.slug}`}
-                        className="inline-flex items-center gap-1 rounded-full border border-zinc-700 bg-zinc-900 px-2.5 py-1 text-xs font-semibold text-zinc-200 hover:border-orange-500/50 hover:text-orange-400"
-                      >
-                        <span aria-hidden>{ex.emoji}</span>
-                        {ex.name}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      <section className="mb-6 rounded-2xl border border-zinc-800 bg-zinc-900/70 p-4">
-        <h2 className="text-sm font-bold uppercase tracking-wider text-orange-400">
-          {food.title}
-        </h2>
-        <p className="mt-2 text-sm text-zinc-300">{food.focus}</p>
-        <ul className="mt-3 space-y-2">
-          {food.tips.map((t) => (
-            <li
-              key={t}
-              className="rounded-xl border border-zinc-800/80 bg-zinc-950/50 px-3 py-2 text-sm text-zinc-400"
-            >
-              {t}
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <DailyInspirationSettings />
-
-      <Disclaimer />
+      <div className="mt-3 flex shrink-0 gap-2">
+        <button
+          type="button"
+          disabled={step === 0}
+          onClick={() => setStep((s) => Math.max(0, s - 1))}
+          className="min-h-[48px] flex-1 rounded-xl border border-zinc-700 text-sm font-bold text-zinc-200 disabled:opacity-40"
+        >
+          Back
+        </button>
+        <button
+          type="button"
+          disabled={step === STEPS.length - 1}
+          onClick={() => setStep((s) => Math.min(STEPS.length - 1, s + 1))}
+          className="min-h-[48px] flex-1 rounded-xl bg-orange-500 text-sm font-bold text-black disabled:opacity-40"
+        >
+          Next
+        </button>
+      </div>
     </div>
   );
 }
