@@ -14,6 +14,8 @@ import { getExercise } from "@/lib/exercises";
 import { ModeSelector } from "./ModeSelector";
 import { Disclaimer } from "./Disclaimer";
 
+const MOVES_PER_PAGE = 2;
+
 export function HomeClient({
   onStart,
   onReviewConsent,
@@ -25,11 +27,13 @@ export function HomeClient({
   const [rx, setRx] = useState<TodayPrescription | null>(null);
   const [stores, setStores] = useState(true);
   const [who, setWho] = useState("");
+  const [prescriptionPage, setPrescriptionPage] = useState(0);
 
   useEffect(() => {
     const m = loadModePref();
     setMode(m);
     setRx(prescribeToday(m));
+    setPrescriptionPage(0);
     setStores(canStoreWorkoutData());
     const account = loadAccount();
     setWho(
@@ -45,9 +49,18 @@ export function HomeClient({
     setMode(m);
     saveModePref(m);
     setRx(prescribeToday(m));
+    setPrescriptionPage(0);
   };
 
   const preset = MODE_PRESETS[mode];
+  const moves = rx?.moves ?? [];
+  const pageCount = Math.max(1, Math.ceil(moves.length / MOVES_PER_PAGE));
+  const page = Math.min(prescriptionPage, pageCount - 1);
+  const firstMoveIndex = page * MOVES_PER_PAGE;
+  const visibleMoves = moves.slice(
+    firstMoveIndex,
+    firstMoveIndex + MOVES_PER_PAGE
+  );
 
   return (
     <div className="page-in mx-auto flex h-full max-w-lg flex-col overflow-hidden px-4 pt-4 pb-[calc(4.75rem+env(safe-area-inset-bottom))]">
@@ -75,7 +88,8 @@ export function HomeClient({
           Prescribed · {rx?.title ?? "…"}
         </p>
         <ul className="mt-2 min-h-0 flex-1 space-y-1.5 overflow-hidden">
-          {(rx?.moves ?? []).map((move, i) => {
+          {visibleMoves.map((move, pageIndex) => {
+            const i = firstMoveIndex + pageIndex;
             const ex = getExercise(move.slug);
             const thumb = ex?.formExecImage || ex?.formImage;
             return (
@@ -105,6 +119,37 @@ export function HomeClient({
             );
           })}
         </ul>
+        {pageCount > 1 && (
+          <nav
+            aria-label="Prescription pages"
+            className="mt-2 flex shrink-0 items-center gap-2"
+          >
+            <button
+              type="button"
+              disabled={page === 0}
+              onClick={() => setPrescriptionPage((n) => Math.max(0, n - 1))}
+              className="min-h-[44px] flex-1 rounded-xl border border-zinc-700 text-sm font-bold text-zinc-200 disabled:opacity-40"
+            >
+              Back
+            </button>
+            <span
+              aria-live="polite"
+              className="shrink-0 text-xs font-semibold text-zinc-500"
+            >
+              {page + 1} / {pageCount}
+            </span>
+            <button
+              type="button"
+              disabled={page === pageCount - 1}
+              onClick={() =>
+                setPrescriptionPage((n) => Math.min(pageCount - 1, n + 1))
+              }
+              className="min-h-[44px] flex-1 rounded-xl bg-zinc-800 text-sm font-bold text-zinc-100 disabled:opacity-40"
+            >
+              Next
+            </button>
+          </nav>
+        )}
         {!stores && (
           <button
             type="button"
