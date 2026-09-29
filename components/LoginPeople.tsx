@@ -32,7 +32,7 @@ const FIGURES: FigureSpec[] = [
   {
     start: "/forms/squats-start.jpg",
     exec: "/forms/squats-exec.jpg",
-    className: "bottom-0 left-[-6%] h-[62%] w-[48%]",
+    className: "bottom-[2%] left-[2%] h-[70%] w-[32%]",
     opacity: 0.52,
     mirror: false,
     startOnExec: false,
@@ -41,7 +41,7 @@ const FIGURES: FigureSpec[] = [
   {
     start: "/forms/burpees-start.jpg",
     exec: "/forms/burpees-exec.jpg",
-    className: "right-[-8%] top-[2%] h-[36%] w-[70%]",
+    className: "right-[2%] top-[3%] h-[38%] w-[36%]",
     opacity: 0.46,
     mirror: false,
     startOnExec: true,
@@ -50,7 +50,7 @@ const FIGURES: FigureSpec[] = [
   {
     start: "/forms/squats-start.jpg",
     exec: "/forms/squats-exec.jpg",
-    className: "bottom-[1%] right-[-4%] h-[48%] w-[40%]",
+    className: "bottom-[2%] right-[2%] h-[52%] w-[26%]",
     opacity: 0.4,
     mirror: true,
     startOnExec: true,
@@ -59,7 +59,7 @@ const FIGURES: FigureSpec[] = [
   {
     start: "/forms/burpees-start.jpg",
     exec: "/forms/burpees-exec.jpg",
-    className: "left-[-4%] top-[7%] h-[30%] w-[56%]",
+    className: "left-[2%] top-[4%] h-[32%] w-[32%]",
     opacity: 0.38,
     mirror: true,
     startOnExec: false,
@@ -231,9 +231,9 @@ function scaleBox(
 }
 
 /**
- * Both poses share one pixel box. Photos are scaled to the same height
- * (same person, same camera scale), then each body is bottom-centered
- * so a framing difference cannot slide the figure on swap.
+ * Both poses share one canvas. Each photo is scaled so the full body
+ * fits (same camera scale, head through feet, never a legs-only crop),
+ * then bottom-centered so the feet stay planted when the hard cut swaps.
  */
 function alignPair(a: Cutout, b: Cutout): [HTMLCanvasElement, HTMLCanvasElement] {
   const aH = NORM_H;
@@ -356,8 +356,8 @@ function LoginFigure({ spec }: { spec: FigureSpec }) {
     >
       <canvas
         ref={viewRef}
-        className="absolute inset-0 h-full w-full"
-        style={{ objectFit: "cover", objectPosition: "center bottom" }}
+        className="absolute inset-0 h-full w-full object-contain object-bottom"
+        style={{ objectFit: "contain", objectPosition: "center bottom" }}
       />
     </div>
   );
