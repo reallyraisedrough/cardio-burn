@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { saveAccount } from "@/lib/account";
+import { DumbbellRain } from "./DumbbellRain";
 import { PoseSilhouette } from "./PoseSilhouette";
 
 export function LoginScreen({ onDone }: { onDone: () => void }) {
@@ -28,10 +29,11 @@ export function LoginScreen({ onDone }: { onDone: () => void }) {
   return (
     <div className="relative h-full overflow-hidden bg-zinc-950">
       <PoseSilhouette />
+      <DumbbellRain />
       <div className="relative z-10 flex h-full items-center justify-center px-4">
         <form
           onSubmit={continueEmail}
-          className="page-in w-full max-w-sm rounded-3xl border border-zinc-800 bg-zinc-950/85 p-6 shadow-2xl backdrop-blur"
+          className="page-in w-full max-w-sm rounded-3xl border border-zinc-800 bg-zinc-950/90 p-6 shadow-2xl"
         >
           <p className="text-xs font-semibold uppercase tracking-widest text-orange-400">
             Cardio Burner
