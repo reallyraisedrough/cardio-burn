@@ -4,7 +4,7 @@ import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { saveAccount } from "@/lib/account";
 import { DumbbellRain } from "./DumbbellRain";
-import { PoseSilhouette } from "./PoseSilhouette";
+import { LoginPeople } from "./LoginPeople";
 
 export function LoginScreen({ onDone }: { onDone: () => void }) {
   const [email, setEmail] = useState("");
@@ -28,7 +28,7 @@ export function LoginScreen({ onDone }: { onDone: () => void }) {
 
   return (
     <div className="relative h-full overflow-hidden bg-zinc-950">
-      <PoseSilhouette />
+      <LoginPeople />
       <DumbbellRain />
       <div className="relative z-10 flex h-full items-center justify-center px-4">
         <form
