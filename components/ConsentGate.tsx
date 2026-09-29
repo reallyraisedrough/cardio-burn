@@ -59,12 +59,14 @@ export function ConsentGate({
           >
             Not now
           </button>
-          <Link
-            href="/privacy"
-            className="flex min-h-[40px] items-center justify-center text-xs text-zinc-500 underline"
-          >
-            Privacy
-          </Link>
+          <div className="flex min-h-[40px] items-center justify-center gap-4 text-xs text-zinc-500">
+            <Link href="/privacy" className="underline hover:text-zinc-300">
+              Privacy draft
+            </Link>
+            <Link href="/data-policy" className="underline hover:text-zinc-300">
+              Data-collection draft
+            </Link>
+          </div>
         </div>
       </div>
     </div>

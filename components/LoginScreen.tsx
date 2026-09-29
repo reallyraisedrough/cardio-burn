@@ -72,11 +72,14 @@ export function LoginScreen({ onDone }: { onDone: () => void }) {
           >
             Continue as guest
           </button>
-          <p className="mt-4 text-center text-xs text-zinc-500">
+          <div className="mt-4 flex justify-center gap-4 text-center text-xs text-zinc-500">
             <Link href="/privacy" className="underline hover:text-zinc-300">
-              Privacy
+              Privacy draft
             </Link>
-          </p>
+            <Link href="/data-policy" className="underline hover:text-zinc-300">
+              Data-collection draft
+            </Link>
+          </div>
         </form>
       </div>
     </div>

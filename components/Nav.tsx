@@ -18,6 +18,7 @@ export function Nav() {
     hideNav ||
     pathname?.startsWith("/workout/") ||
     pathname === "/privacy" ||
+    pathname === "/data-policy" ||
     pathname === "/terms";
 
   if (hide) return null;
