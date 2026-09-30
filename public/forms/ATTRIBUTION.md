@@ -67,4 +67,4 @@ Timed holds. Every file below was downloaded from `images.pexels.com` for that p
 | `calf-stretch-start.jpg` | same file as `warrior-start.jpg` (Pexels 6453460) | Pexels License | Marta Wave — standing start |
 | `calf-stretch-exec.jpg` | https://www.pexels.com/photo/a-woman-wearing-a-leggings-while-holding-on-the-wall-10112440/ | Pexels License | Amar Preciado — wall calf stretch, whole body |
 
-`downward-dog.jpg`, `warrior.jpg`, and the other new `*.jpg` files are copies of the matching `-exec.jpg`. Service worker cache name is `cardio-burner-v13` so a previously cached shell does not keep stale form URLs. Form image query is `?v=9`.
+`downward-dog.jpg`, `warrior.jpg`, and the other new `*.jpg` files are copies of the matching `-exec.jpg`. Service worker cache name is `cardio-burner-v14` so a previously cached shell does not keep stale form URLs. Form image query is `?v=9`.
