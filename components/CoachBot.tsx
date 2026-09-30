@@ -10,6 +10,8 @@ import {
 import {
   COACH_PITCH,
   COACH_RATE,
+  COACH_PITCH_FORM,
+  COACH_RATE_FORM,
   MID_SET_CUE_GAP_MS,
   cancelCoachSpeech,
   estimateSpeakMs,
@@ -244,7 +246,7 @@ export function CoachBot({
       // Always show on ticker; speak only if gap elapsed (avoids spam / overlap)
       if (now - lastMidSpeakAt.current >= MID_SET_CUE_GAP_MS) {
         lastMidSpeakAt.current = now;
-        speak(line, { rate: 1.02, pitch: COACH_PITCH });
+        speak(line, { rate: COACH_RATE, pitch: COACH_PITCH });
       } else {
         pushCallout(line);
       }
@@ -446,8 +448,8 @@ export function speakFormScript(
   opts?: { rate?: number; pitch?: number }
 ): Promise<void> {
   return speakCoachAndWait(text, muted, {
-    rate: opts?.rate ?? 0.95,
-    pitch: opts?.pitch ?? 0.82,
+    rate: opts?.rate ?? COACH_RATE_FORM,
+    pitch: opts?.pitch ?? COACH_PITCH_FORM,
   });
 }
 

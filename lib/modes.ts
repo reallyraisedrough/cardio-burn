@@ -164,10 +164,10 @@ export function modeStartCoachLine(mode: IntensityMode | string): string {
   const p = MODE_PRESETS[resolved];
   const n = p.workingSets;
   if (resolved === "beginning") {
-    return `Beginning mode. ${n} working sets, then burnout. Build clean and finish strong.`;
+    return `Alright, beginning mode. ${n} working sets, then burnout. Let's build this clean.`;
   }
   if (resolved === "expert") {
-    return `Expert mode. ${n} working sets plus burnout. No shortcuts.`;
+    return `Expert mode. ${n} working sets plus burnout. No shortcuts today.`;
   }
-  return `Moderate mode. ${n} working sets plus burnout. Stay locked in.`;
+  return `Alright, moderate. ${n} working sets, then burnout. Stay with me.`;
 }

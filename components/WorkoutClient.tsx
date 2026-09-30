@@ -21,6 +21,9 @@ import {
   COACH_PITCH,
   COACH_RATE,
   COACH_RATE_COUNT,
+  COACH_RATE_GO,
+  COACH_RATE_FORM,
+  COACH_PITCH_FORM,
   COUNTDOWN_SPEAK_LAST,
   ackCommand,
   estimateSpeakMs,
@@ -205,7 +208,7 @@ export function WorkoutClient({
       setPreCount(null);
       setShowGo(true);
       speakCoach(pickGoLine(), muted, {
-        rate: 1.05,
+        rate: COACH_RATE_GO,
         pitch: COACH_PITCH,
       });
       await new Promise((r) => setTimeout(r, 700));
@@ -235,11 +238,22 @@ export function WorkoutClient({
       );
       if (explainForm) {
         const script = buildFormCoachScript(exercise);
-        setAnnounce("Form brief.");
-        await speakFormScript(script, muted, { rate: 0.95, pitch: 0.82 });
+        const formCue = "Quick form check.";
+        setAnnounce(formCue);
+        // Let the cue finish before the form script so the two never overlap.
+        await new Promise((r) =>
+          setTimeout(r, muted ? 200 : estimateSpeakMs(formCue, COACH_RATE))
+        );
+        await speakFormScript(script, muted, {
+          rate: COACH_RATE_FORM,
+          pitch: COACH_PITCH_FORM,
+        });
       }
-      setAnnounce("Let's go.");
-      await new Promise((r) => setTimeout(r, muted ? 200 : 700));
+      const goCue = "Alright, let's go.";
+      setAnnounce(goCue);
+      await new Promise((r) =>
+        setTimeout(r, muted ? 200 : estimateSpeakMs(goCue, COACH_RATE))
+      );
       await runPreCountdown(true);
     })();
   }, [goal, exercise, setupTimer, runPreCountdown, explainForm, muted, mode]);

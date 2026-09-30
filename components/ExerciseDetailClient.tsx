@@ -13,6 +13,7 @@ import {
 } from "@/lib/modes";
 import { formatMs, formatDate } from "@/lib/format";
 import { ModeSelector } from "./ModeSelector";
+import { COACH_PITCH_FORM, COACH_RATE_FORM } from "@/lib/coach";
 import {
   loadMutePref,
   speakFormScript,
@@ -66,7 +67,10 @@ export function ExerciseDetailClient({ exercise }: { exercise: Exercise }) {
     setHearing(true);
     const muted = loadMutePref();
     const script = buildFormCoachScript(exercise);
-    await speakFormScript(script, muted, { rate: 0.95, pitch: 0.88 });
+    await speakFormScript(script, muted, {
+      rate: COACH_RATE_FORM,
+      pitch: COACH_PITCH_FORM,
+    });
     setHearing(false);
   };
 
