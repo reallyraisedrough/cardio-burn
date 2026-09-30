@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Exercise } from "@/lib/exercises";
+import { DigitalHuman } from "./DigitalHuman";
 import { buildFormCoachScript } from "@/lib/exercises";
 import { getSessionsForExercise, saveSession } from "@/lib/db";
 import { computeGoal, evaluateGoal } from "@/lib/goals";
@@ -428,13 +429,11 @@ export function WorkoutClient({
         {readyPane === "brief" ? (
           <>
             <div className="mt-3 flex items-center gap-3">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={exercise.formExecImage || exercise.formImage}
-                alt={`Form for ${exercise.name}`}
-                className="h-20 w-20 shrink-0 rounded-2xl object-cover"
-                width={80}
-                height={80}
+              <DigitalHuman
+                slug={exercise.slug}
+                phase="exec"
+                className="h-20 w-20 shrink-0 rounded-2xl bg-zinc-950"
+                title={`Form for ${exercise.name}`}
               />
               <div className="min-w-0">
                 <h1 className="truncate text-2xl font-black text-white">
@@ -683,13 +682,11 @@ export function WorkoutClient({
       </div>
 
       <div className="mt-2 flex items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-900/70 p-2">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={exercise.formExecImage || exercise.formImage}
-          alt={`${exercise.name} form`}
-          className="h-12 w-12 shrink-0 rounded-lg object-cover"
-          width={48}
-          height={48}
+        <DigitalHuman
+          slug={exercise.slug}
+          phase="exec"
+          className="h-12 w-12 shrink-0 rounded-lg bg-zinc-950"
+          title={`${exercise.name} form`}
         />
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-bold text-white">{exercise.name}</p>

@@ -13,6 +13,7 @@ import { loadAccount } from "@/lib/account";
 import { getExercise } from "@/lib/exercises";
 import { ModeSelector } from "./ModeSelector";
 import { Disclaimer } from "./Disclaimer";
+import { DigitalHuman } from "./DigitalHuman";
 
 const MOVES_PER_PAGE = 2;
 
@@ -91,20 +92,17 @@ export function HomeClient({
           {visibleMoves.map((move, pageIndex) => {
             const i = firstMoveIndex + pageIndex;
             const ex = getExercise(move.slug);
-            const thumb = ex?.formExecImage || ex?.formImage;
             return (
               <li
                 key={move.slug}
                 className="flex items-center gap-2 rounded-xl border border-zinc-800 bg-zinc-950/70 px-2 py-1.5"
               >
-                {thumb ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={thumb}
-                    alt=""
-                    className="h-10 w-10 shrink-0 rounded-lg object-cover"
-                    width={40}
-                    height={40}
+                {ex ? (
+                  <DigitalHuman
+                    slug={ex.slug}
+                    phase="exec"
+                    className="h-10 w-10 shrink-0 rounded-lg bg-zinc-950"
+                    title=""
                   />
                 ) : (
                   <span className="text-lg">{move.emoji}</span>

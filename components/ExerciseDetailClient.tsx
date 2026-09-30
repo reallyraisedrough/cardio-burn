@@ -13,6 +13,7 @@ import {
 } from "@/lib/modes";
 import { formatMs, formatDate } from "@/lib/format";
 import { ModeSelector } from "./ModeSelector";
+import { DigitalHuman } from "./DigitalHuman";
 import { COACH_PITCH_FORM, COACH_RATE_FORM } from "@/lib/coach";
 import {
   loadMutePref,
@@ -74,9 +75,6 @@ export function ExerciseDetailClient({ exercise }: { exercise: Exercise }) {
     setHearing(false);
   };
 
-  const startSrc = exercise.formStartImage || exercise.formImage;
-  const execSrc = exercise.formExecImage || exercise.formImage;
-
   return (
     <div className="page-in mx-auto flex h-full max-w-lg flex-col overflow-hidden px-4 pt-3 pb-[calc(4.75rem+env(safe-area-inset-bottom))]">
       <Link
@@ -97,27 +95,23 @@ export function ExerciseDetailClient({ exercise }: { exercise: Exercise }) {
       </div>
 
       <div className="mt-3 grid min-h-0 flex-1 grid-cols-2 gap-2">
-        <figure className="overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={startSrc}
-            alt={`Starting pose for ${exercise.name}`}
-            className="mx-auto h-auto h-full max-h-full w-full object-contain object-center"
-            width={800}
-            height={600}
+        <figure className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950">
+          <DigitalHuman
+            slug={exercise.slug}
+            phase="start"
+            className="min-h-0 w-full flex-1"
+            title={`Starting pose for ${exercise.name}`}
           />
           <figcaption className="border-t border-zinc-800 px-3 py-2 text-center text-xs font-bold uppercase tracking-wider text-orange-400">
             Starting pose
           </figcaption>
         </figure>
-        <figure className="overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={execSrc}
-            alt={`Execution pose for ${exercise.name}`}
-            className="mx-auto h-auto h-full max-h-full w-full object-contain object-center"
-            width={800}
-            height={600}
+        <figure className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950">
+          <DigitalHuman
+            slug={exercise.slug}
+            phase="exec"
+            className="min-h-0 w-full flex-1"
+            title={`Execution pose for ${exercise.name}`}
           />
           <figcaption className="border-t border-zinc-800 px-3 py-2 text-center text-xs font-bold uppercase tracking-wider text-orange-400">
             Execution / mid-rep

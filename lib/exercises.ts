@@ -3,6 +3,7 @@ export type { Exercise, ExerciseSlug } from "./types";
 
 const V = "9";
 
+/** Legacy photo paths. Poses on screen are drawn by DigitalHuman, not these files. */
 function formPaths(slug: ExerciseSlug) {
   return {
     formStartImage: `/forms/${slug}-start.jpg?v=${V}`,

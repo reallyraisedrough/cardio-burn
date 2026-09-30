@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { Exercise } from "@/lib/exercises";
 import type { WorkoutSession } from "@/lib/types";
 import { formatMs, formatDate } from "@/lib/format";
+import { DigitalHuman } from "./DigitalHuman";
 
 interface Props {
   exercise: Exercise;
@@ -20,8 +21,6 @@ export function ExerciseCard({ exercise, last, goalLabel }: Props) {
       )} · ${formatDate(last.completedAt)}`
     : "No sessions yet — starter goal ready";
 
-  const thumb = exercise.formExecImage || exercise.formImage;
-
   return (
     <Link
       href={`/exercise/${exercise.slug}`}
@@ -29,13 +28,11 @@ export function ExerciseCard({ exercise, last, goalLabel }: Props) {
     >
       <div className="flex items-start gap-3">
         <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-zinc-700 bg-zinc-950">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={thumb}
-            alt={`Proper form for ${exercise.name}`}
-            className="h-full w-full object-cover object-center"
-            width={56}
-            height={56}
+          <DigitalHuman
+            slug={exercise.slug}
+            phase="exec"
+            className="h-full w-full"
+            title={`Proper form for ${exercise.name}`}
           />
           <span className="absolute bottom-0.5 right-0.5 text-sm leading-none drop-shadow">
             {exercise.emoji}
