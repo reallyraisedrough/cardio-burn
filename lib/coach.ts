@@ -334,7 +334,33 @@ export function ackCommand(cmd: string): string {
  * Form explain: setup → execution → breathing → mistakes,
  * framed for fat burn / strength / stamina. Spoken like a person, not an announcer.
  */
+/** Short hold cues. Spoken instead of the rep script. */
+const HOLD_FORM: Record<string, string> = {
+  "downward-dog":
+    "Downward dog. Hands down, then hips high. Long spine, heels reaching. Breathe and hold. Don't sink into your shoulders.",
+  warrior:
+    "Warrior. Front knee bends, back leg stays long, chest open. Hold it. Don't let that front knee cave in.",
+  "childs-pose":
+    "Child's pose. Hips toward the heels, arms long, forehead down. Easy breath. Don't force the fold.",
+  cobra:
+    "Cobra. Hands under the shoulders, chest lifts, hips stay down. Hold and breathe. Come out if the low back pinches.",
+  "hip-flexor":
+    "Hip flexor. Half kneel, tuck the pelvis, shift forward. Hold the front of the hip. Don't arch the low back. Switch sides.",
+  hamstring:
+    "Hamstring. Heel up, knee long, hinge from the hips. Hold. Don't bounce. Switch sides.",
+  "chest-opener":
+    "Chest opener. Open the chest, shoulders back, ribs down. Hold and breathe. Don't crank the low back.",
+  "shoulder-stretch":
+    "Shoulder stretch. Arms overhead, sides long, ribs in. Hold. Ease off if a shoulder pinches.",
+  "quad-stretch":
+    "Quad stretch. Heel to the hip, knees together, stand tall. Hold. Don't yank the knee. Switch sides.",
+  "calf-stretch":
+    "Calf stretch. Back heel down, leg long, lean in. Hold. Don't let the heel pop up. Switch sides.",
+};
+
 export function buildFormCoachScript(exercise: Exercise): string {
+  const hold = HOLD_FORM[exercise.slug];
+  if (hold) return hold;
   const cues = exercise.formCues;
   const setup = cues[0] ?? "Get into a strong start.";
   const execution = cues.slice(1, -1).join(" ");

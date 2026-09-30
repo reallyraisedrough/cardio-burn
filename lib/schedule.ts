@@ -50,6 +50,47 @@ const BEGINNING_COMBOS: ExerciseCombo[] = [
     label: "Full-body blast",
     exercises: pick(["burpees", "dips", "skull-crushers"]),
   },
+  // Still 3 moves. One yoga OR one stretch — strength stays in the session.
+  {
+    label: "Core & downward dog",
+    exercises: pick(["planks", "push-ups", "downward-dog"]),
+  },
+  {
+    label: "Legs & warrior",
+    exercises: pick(["squats", "lunges", "warrior"]),
+  },
+  {
+    label: "Core & child's pose",
+    exercises: pick(["sit-ups", "planks", "childs-pose"]),
+  },
+  {
+    label: "Push & cobra",
+    exercises: pick(["dips", "push-ups", "cobra"]),
+  },
+  {
+    label: "Legs & hamstring",
+    exercises: pick(["squats", "lunges", "hamstring"]),
+  },
+  {
+    label: "Engine & calf",
+    exercises: pick(["jogging", "squats", "calf-stretch"]),
+  },
+  {
+    label: "Legs & quad",
+    exercises: pick(["lunges", "burpees", "quad-stretch"]),
+  },
+  {
+    label: "Push & chest",
+    exercises: pick(["push-ups", "dips", "chest-opener"]),
+  },
+  {
+    label: "Core & shoulders",
+    exercises: pick(["planks", "sit-ups", "shoulder-stretch"]),
+  },
+  {
+    label: "Legs & hips",
+    exercises: pick(["lunges", "squats", "hip-flexor"]),
+  },
 ];
 
 /** Moderate: Beginning’s 3 + 2 more. */
@@ -66,6 +107,27 @@ const MODERATE_COMBOS: ExerciseCombo[] = [
     label: "Full-body + core",
     exercises: pick(["burpees", "dips", "skull-crushers", "planks", "push-ups"]),
   },
+  // Still 5 moves: 3 strength + 1 yoga + 1 stretch.
+  {
+    label: "Core, dog, hamstrings",
+    exercises: pick(["planks", "push-ups", "squats", "downward-dog", "hamstring"]),
+  },
+  {
+    label: "Legs, warrior, quads",
+    exercises: pick(["lunges", "jogging", "dips", "warrior", "quad-stretch"]),
+  },
+  {
+    label: "Engine, cobra, calves",
+    exercises: pick(["burpees", "sit-ups", "push-ups", "cobra", "calf-stretch"]),
+  },
+  {
+    label: "Legs, child's pose, hips",
+    exercises: pick(["squats", "lunges", "planks", "childs-pose", "hip-flexor"]),
+  },
+  {
+    label: "Arms, chest, shoulders",
+    exercises: pick(["dips", "skull-crushers", "push-ups", "chest-opener", "shoulder-stretch"]),
+  },
 ];
 
 export function getSchedulePlan(mode: IntensityMode): SchedulePlan {
@@ -78,7 +140,7 @@ export function getSchedulePlan(mode: IntensityMode): SchedulePlan {
       frequency: "At least every other day",
       exercisesPerSession: "3 different exercises per session",
       summary:
-        "Train every other day minimum. Each session pick 3 moves and rotate through the library so nothing gets stale.",
+        "Train every other day minimum. Each session is 3 moves. Rotate the strength library, and some days swap in one yoga pose or one stretch.",
       sampleCombos: BEGINNING_COMBOS,
       tips: [
         "Rest at least one full day between sessions.",
@@ -95,7 +157,7 @@ export function getSchedulePlan(mode: IntensityMode): SchedulePlan {
       frequency: "At least every other day",
       exercisesPerSession: "5 exercises per session",
       summary:
-        "Same every-other-day cadence as Beginning, but stack 5 exercises — your Beginning trio plus two more.",
+        "Same every-other-day cadence as Beginning, but stack 5 exercises. Some days are strength; some add one yoga pose and one stretch inside the five.",
       sampleCombos: MODERATE_COMBOS,
       tips: [
         "Keep at least one rest day between sessions.",

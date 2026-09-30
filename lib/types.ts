@@ -7,7 +7,17 @@ export type ExerciseSlug =
   | "squats"
   | "push-ups"
   | "sit-ups"
-  | "skull-crushers";
+  | "skull-crushers"
+  | "downward-dog"
+  | "warrior"
+  | "childs-pose"
+  | "cobra"
+  | "hip-flexor"
+  | "hamstring"
+  | "chest-opener"
+  | "shoulder-stretch"
+  | "quad-stretch"
+  | "calf-stretch";
 
 export type TrackingMode = "timed" | "reps";
 
