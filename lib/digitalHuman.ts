@@ -1,9 +1,9 @@
 import type { ExerciseSlug } from "./types";
 
 /**
- * One digital human, posed for every exercise.
- * Side and front views share the same proportions and flat fills.
- * No photos, no joint balls, no blur filters.
+ * One solid digital human, posed for every exercise.
+ * Same thick body everywhere: torso, hips, thighs, calves, upper arms,
+ * forearms, neck, and a real head. Flat fills, hard edges, no blur.
  */
 
 export type PosePhase = "start" | "exec";
@@ -572,15 +572,15 @@ const POSES: Record<ExerciseSlug, { start: Spec; exec: Spec }> = {
 };
 
 const LEN = {
-  torso: 88,
-  neck: 13,
-  head: 25,
-  upper: 54,
-  fore: 48,
-  hand: 15,
-  thigh: 72,
-  shin: 68,
-  foot: 28,
+  torso: 84,
+  neck: 18,
+  head: 26,
+  upper: 50,
+  fore: 44,
+  hand: 17,
+  thigh: 68,
+  shin: 64,
+  foot: 30,
 };
 
 const TONE = {
@@ -602,37 +602,52 @@ const TONE = {
 
 /** Side-view profile. Local +x is the face, +y is up. */
 const PROFILE: Pt[] = [
-  { x: -0.22, y: -1.12 },
-  { x: -0.55, y: -0.78 },
-  { x: -0.98, y: -0.28 },
-  { x: -1.08, y: 0.22 },
-  { x: -0.82, y: 0.7 },
-  { x: -0.28, y: 1.05 },
-  { x: 0.22, y: 1.1 },
-  { x: 0.66, y: 0.8 },
-  { x: 0.8, y: 0.4 },
-  { x: 0.7, y: 0.16 },
-  { x: 1.2, y: -0.02 },
-  { x: 0.72, y: -0.24 },
-  { x: 0.9, y: -0.4 },
-  { x: 0.58, y: -0.68 },
-  { x: 0.22, y: -0.98 },
-  { x: 0.02, y: -1.14 },
+  { x: 0.18, y: -0.92 },
+  { x: -0.02, y: -1.02 },
+  { x: -0.32, y: -0.86 },
+  { x: -0.58, y: -0.55 },
+  { x: -0.78, y: -0.16 },
+  { x: -0.88, y: 0.22 },
+  { x: -0.8, y: 0.58 },
+  { x: -0.55, y: 0.88 },
+  { x: -0.18, y: 1.05 },
+  { x: 0.2, y: 1.06 },
+  { x: 0.52, y: 0.88 },
+  { x: 0.72, y: 0.58 },
+  { x: 0.78, y: 0.32 },
+  { x: 0.74, y: 0.16 },
+  { x: 0.8, y: 0.05 },
+  { x: 0.86, y: -0.05 },
+  { x: 0.7, y: -0.16 },
+  { x: 0.76, y: -0.32 },
+  { x: 0.6, y: -0.52 },
+  { x: 0.36, y: -0.74 },
+  { x: 0.2, y: -0.9 },
 ];
 
 const FRONT_HEAD: Pt[] = [
-  { x: 0, y: -1.08 },
-  { x: -0.38, y: -0.92 },
-  { x: -0.78, y: -0.48 },
-  { x: -0.92, y: 0.08 },
-  { x: -0.78, y: 0.58 },
-  { x: -0.36, y: 0.98 },
-  { x: 0, y: 1.08 },
-  { x: 0.36, y: 0.98 },
-  { x: 0.78, y: 0.58 },
-  { x: 0.92, y: 0.08 },
+  { x: 0, y: 1.05 },
+  { x: 0.32, y: 0.98 },
+  { x: 0.62, y: 0.76 },
+  { x: 0.82, y: 0.42 },
+  { x: 0.9, y: 0.16 },
+  { x: 1.02, y: 0.02 },
+  { x: 1.04, y: -0.16 },
+  { x: 0.9, y: -0.28 },
   { x: 0.78, y: -0.48 },
-  { x: 0.38, y: -0.92 },
+  { x: 0.48, y: -0.82 },
+  { x: 0.22, y: -1.02 },
+  { x: 0, y: -1.08 },
+  { x: -0.22, y: -1.02 },
+  { x: -0.48, y: -0.82 },
+  { x: -0.78, y: -0.48 },
+  { x: -0.9, y: -0.28 },
+  { x: -1.04, y: -0.16 },
+  { x: -1.02, y: 0.02 },
+  { x: -0.9, y: 0.16 },
+  { x: -0.82, y: 0.42 },
+  { x: -0.62, y: 0.76 },
+  { x: -0.32, y: 0.98 },
 ];
 
 function dir(deg: number): Pt {
@@ -644,7 +659,8 @@ function add(p: Pt, d: Pt, len: number): Pt {
   return { x: p.x + d.x * len, y: p.y + d.y * len };
 }
 
-function bone(a: Pt, b: Pt, wa: number, wb: number, mid?: number): Pt[] {
+/** Thick limb with a muscle profile and round ends so joints fuse into one body. */
+function solidLimb(a: Pt, b: Pt, radii: number[]): Pt[] {
   const dx = b.x - a.x;
   const dy = b.y - a.y;
   const len = Math.hypot(dx, dy) || 1;
@@ -652,26 +668,38 @@ function bone(a: Pt, b: Pt, wa: number, wb: number, mid?: number): Pt[] {
   const uy = dy / len;
   const px = -uy;
   const py = ux;
-  const a2 = { x: a.x - ux * wa * 0.28, y: a.y - uy * wa * 0.28 };
-  const b2 = { x: b.x + ux * wb * 0.22, y: b.y + uy * wb * 0.22 };
-  if (mid == null) {
-    return [
-      { x: a2.x + px * wa, y: a2.y + py * wa },
-      { x: b2.x + px * wb, y: b2.y + py * wb },
-      { x: b2.x - px * wb, y: b2.y - py * wb },
-      { x: a2.x - px * wa, y: a2.y - py * wa },
-    ];
+  const n = radii.length - 1;
+  const pts: Pt[] = [];
+  const cap = 7;
+  for (let i = 0; i <= n; i++) {
+    const t = i / n;
+    const r = radii[i];
+    pts.push({ x: a.x + dx * t + px * r, y: a.y + dy * t + py * r });
   }
-  const m = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
-  return [
-    { x: a2.x + px * wa, y: a2.y + py * wa },
-    { x: m.x + px * mid, y: m.y + py * mid },
-    { x: b2.x + px * wb, y: b2.y + py * wb },
-    { x: b2.x - px * wb, y: b2.y - py * wb },
-    { x: m.x - px * mid, y: m.y - py * mid },
-    { x: a2.x - px * wa, y: a2.y - py * wa },
-  ];
+  const rb = radii[n];
+  for (let i = 1; i < cap; i++) {
+    const ang = (Math.PI * i) / cap;
+    pts.push({
+      x: b.x + Math.cos(ang) * px * rb + Math.sin(ang) * ux * rb,
+      y: b.y + Math.cos(ang) * py * rb + Math.sin(ang) * uy * rb,
+    });
+  }
+  for (let i = n; i >= 0; i--) {
+    const t = i / n;
+    const r = radii[i];
+    pts.push({ x: a.x + dx * t - px * r, y: a.y + dy * t - py * r });
+  }
+  const ra = radii[0];
+  for (let i = 1; i < cap; i++) {
+    const ang = (Math.PI * i) / cap;
+    pts.push({
+      x: a.x - Math.cos(ang) * px * ra - Math.sin(ang) * ux * ra,
+      y: a.y - Math.cos(ang) * py * ra - Math.sin(ang) * uy * ra,
+    });
+  }
+  return pts;
 }
+
 
 function rect(x: number, y: number, w: number, h: number): Pt[] {
   return [
@@ -691,25 +719,43 @@ function hex(c: Pt, radius: number): Pt[] {
   return pts;
 }
 
+function smooth(t: number): number {
+  const x = Math.min(1, Math.max(0, t));
+  return x * x * (3 - 2 * x);
+}
+
 function sideTorso(hip: Pt, shoulder: Pt): Pt[] {
   const dx = shoulder.x - hip.x;
   const dy = shoulder.y - hip.y;
-  const ts = [0, 0.14, 0.32, 0.5, 0.68, 0.84, 1];
-  const cw = [13, 15, 18, 22, 20, 15, 12];
-  const bw = [21, 18, 14, 13, 14, 16, 15];
   const len = Math.hypot(dx, dy) || 1;
-  const cx = -dy / len;
-  const cy = dx / len;
-  const chest = ts.map((t, i) => ({
-    x: hip.x + dx * t + cx * cw[i],
-    y: hip.y + dy * t + cy * cw[i],
-  }));
-  const back = ts
-    .map((t, i) => ({
-      x: hip.x + dx * t - cx * bw[i],
-      y: hip.y + dy * t - cy * bw[i],
-    }))
-    .reverse();
+  const nx = -dy / len;
+  const ny = dx / len;
+  const chestW = (t: number) => {
+    if (t < 0.34) return 17 + (14 - 17) * smooth(t / 0.34);
+    if (t < 0.7) return 14 + (25 - 14) * smooth((t - 0.34) / 0.36);
+    return 25 + (14 - 25) * smooth((t - 0.7) / 0.3);
+  };
+  const backW = (t: number) => {
+    if (t < 0.2) return 30 + (26 - 30) * smooth(t / 0.2);
+    if (t < 0.42) return 26 + (15 - 26) * smooth((t - 0.2) / 0.22);
+    if (t < 0.78) return 15 + (17 - 15) * smooth((t - 0.42) / 0.36);
+    return 17 + (13 - 17) * smooth((t - 0.78) / 0.22);
+  };
+  const n = 28;
+  const chest: Pt[] = [];
+  const back: Pt[] = [];
+  for (let i = 0; i <= n; i++) {
+    const t = i / n;
+    chest.push({
+      x: hip.x + dx * t + nx * chestW(t),
+      y: hip.y + dy * t + ny * chestW(t),
+    });
+    back.push({
+      x: hip.x + dx * t - nx * backW(t),
+      y: hip.y + dy * t - ny * backW(t),
+    });
+  }
+  back.reverse();
   return [...chest, ...back];
 }
 
@@ -734,30 +780,63 @@ function placeHead(center: Pt, tiltDeg: number, r: number, local: Pt[]): Pt[] {
   });
 }
 
+function footPoly(ankle: Pt, deg: number): Pt[] {
+  const d = dir(deg);
+  let nx = -d.y;
+  let ny = d.x;
+  if (ny < 0) {
+    nx = -nx;
+    ny = -ny;
+  }
+  const n = { x: nx, y: ny };
+  const heel = add(ankle, d, -12);
+  const mid = add(ankle, d, 4);
+  const ball = add(ankle, d, 16);
+  const toe = add(ankle, d, 30);
+  return [
+    { x: heel.x + n.x * 2, y: heel.y + n.y * 2 },
+    { x: heel.x + n.x * 13, y: heel.y + n.y * 13 },
+    { x: mid.x + n.x * 11, y: mid.y + n.y * 11 },
+    { x: ball.x + n.x * 12, y: ball.y + n.y * 12 },
+    { x: toe.x + n.x * 8, y: toe.y + n.y * 8 },
+    { x: toe.x + n.x * 2, y: toe.y + n.y * 2 },
+    { x: ball.x - n.x * 3, y: ball.y - n.y * 3 },
+    { x: ankle.x - n.x * 4, y: ankle.y - n.y * 4 },
+    { x: heel.x - n.x * 1, y: heel.y - n.y * 1 },
+  ];
+}
+
 function limbChain(
   origin: Pt,
   upperDeg: number,
   foreDeg: number,
-  footOrHand: "arm" | "leg",
+  kind: "arm" | "leg",
   footDeg?: number
 ): { knee: Pt; end: Pt; toe: Pt; parts: Pt[][] } {
-  const upper = footOrHand === "arm" ? LEN.upper : LEN.thigh;
-  const lower = footOrHand === "arm" ? LEN.fore : LEN.shin;
-  const knee = add(origin, dir(upperDeg), upper);
-  const end = add(knee, dir(foreDeg), lower);
+  const upperLen = kind === "arm" ? LEN.upper : LEN.thigh;
+  const lowerLen = kind === "arm" ? LEN.fore : LEN.shin;
+  const dUpper = dir(upperDeg);
+  const dLower = dir(foreDeg);
+  const knee = add(origin, dUpper, upperLen);
+  const end = add(knee, dLower, lowerLen);
   const parts: Pt[][] = [];
-  if (footOrHand === "arm") {
-    parts.push(bone(origin, knee, 13, 9));
-    parts.push(bone(knee, end, 9, 7));
-    const hand = add(end, dir(foreDeg), LEN.hand);
-    parts.push(bone(end, hand, 8, 6));
+  if (kind === "arm") {
+    const root = add(origin, dUpper, -4);
+    const elbow = add(knee, dLower, -8);
+    parts.push(solidLimb(root, knee, [13, 14.5, 12.5, 10.5]));
+    parts.push(solidLimb(elbow, end, [10.5, 11, 9, 7.2]));
+    const hand = add(end, dLower, LEN.hand);
+    const wrist = add(end, dLower, -4);
+    parts.push(solidLimb(wrist, hand, [6.6, 7.2, 5.2]));
     return { knee, end, toe: hand, parts };
   }
-  parts.push(bone(origin, knee, 18, 12));
-  parts.push(bone(knee, end, 12, 8, 13.5));
+  const root = add(origin, dUpper, -8);
+  const kneeIn = add(knee, dLower, -8);
+  parts.push(solidLimb(root, knee, [18, 20, 17, 14.5]));
+  parts.push(solidLimb(kneeIn, end, [13.5, 16, 13.5, 8.5]));
   const fd = footDeg ?? autoFoot(foreDeg);
   const toe = add(end, dir(fd), LEN.foot);
-  parts.push(bone(end, toe, 9, 5));
+  parts.push(footPoly(end, fd));
   return { knee, end, toe, parts };
 }
 
@@ -792,7 +871,7 @@ function fit(shapes: { pts: Pt[]; fill: string }[]): Shape[] {
   }
   const vbW = 200;
   const vbH = 260;
-  const pad = 10;
+  const pad = 8;
   const bw = Math.max(1, maxX - minX);
   const bh = Math.max(1, maxY - minY);
   const s = Math.min((vbW - pad * 2) / bw, (vbH - pad * 2) / bh);
@@ -813,85 +892,89 @@ function dumbbell(wrist: Pt, foreDeg: number): Pt[][] {
   const along = dir(foreDeg);
   const px = -along.y;
   const py = along.x;
-  const grip = add(wrist, along, 10);
-  const a = add(grip, { x: px, y: py }, 16);
-  const b = add(grip, { x: px, y: py }, -16);
-  const bar = bone(a, b, 3.2, 3.2);
-  return [bar, hex(a, 11), hex(b, 11)];
+  const grip = add(wrist, along, 12);
+  const a = add(grip, { x: px, y: py }, 18);
+  const b = add(grip, { x: px, y: py }, -18);
+  const bar = solidLimb(a, b, [3.4, 3.4]);
+  return [bar, hex(a, 12), hex(b, 12)];
 }
 
 type Fill = { near: string; far: string; prop: string; metal: string; ground: string };
 
+function boundsOf(parts: Pt[][]): { minX: number; maxX: number; maxY: number } {
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  for (const part of parts) {
+    for (const p of part) {
+      if (p.x < minX) minX = p.x;
+      if (p.x > maxX) maxX = p.x;
+      if (p.y > maxY) maxY = p.y;
+    }
+  }
+  return { minX, maxX, maxY };
+}
+
 function buildSide(spec: SideSpec, fill: Fill): { pts: Pt[]; fill: string }[] {
   const hip = { x: 0, y: 0 };
-  const shoulder = add(hip, { x: Math.sin((spec.torso * Math.PI) / 180), y: -Math.cos((spec.torso * Math.PI) / 180) }, LEN.torso);
+  const down = dir(spec.torso);
+  const up = { x: down.x, y: -down.y };
+  const shoulder = add(hip, up, LEN.torso);
   const n = chestNormal(hip, shoulder);
-  const axis = {
+  const spine = {
     x: (shoulder.x - hip.x) / LEN.torso,
     y: (shoulder.y - hip.y) / LEN.torso,
   };
-  const farHip = { x: hip.x - n.x * 7, y: hip.y - n.y * 5 };
-  const farShoulder = { x: shoulder.x - n.x * 6, y: shoulder.y - n.y * 4 };
+  const farHip = { x: hip.x - n.x * 9, y: hip.y - n.y * 5 };
+  const farShoulder = { x: shoulder.x - n.x * 7, y: shoulder.y - n.y * 4 };
   const nearLeg = limbChain(hip, spec.thigh, spec.shin, "leg", spec.foot);
   const farLeg = limbChain(farHip, spec.thighFar, spec.shinFar, "leg", spec.footFar);
   const nearArm = limbChain(shoulder, spec.arm, spec.fore, "arm");
   const farArm = limbChain(farShoulder, spec.armFar, spec.foreFar, "arm");
 
   const headTilt = spec.torso + (spec.head ?? 0);
-  const neckTop = add(shoulder, axis, LEN.neck);
-  const headCenter = add(shoulder, axis, LEN.neck + LEN.head * 0.62);
+  const neckBase = add(shoulder, spine, -8);
+  const neckTop = add(shoulder, spine, LEN.neck);
+  const headCenter = add(shoulder, spine, LEN.neck + LEN.head * 0.55);
   const head = placeHead(headCenter, headTilt, LEN.head, PROFILE);
-  const neck = bone(shoulder, neckTop, 11, 12);
+  const neck = solidLimb(neckBase, neckTop, [16, 14, 12, 11]);
 
   const shapes: { pts: Pt[]; fill: string }[] = [];
-
-  const bodyPts = [
-    ...farLeg.parts.flat(),
-    ...nearLeg.parts.flat(),
-    ...sideTorso(hip, shoulder),
-    ...head,
-    nearLeg.toe,
-    farLeg.toe,
-    nearArm.toe,
-    farArm.toe,
-  ];
-  let minX = Infinity;
-  let maxX = -Infinity;
-  let maxY = -Infinity;
-  for (const p of bodyPts) {
-    if (p.x < minX) minX = p.x;
-    if (p.x > maxX) maxX = p.x;
-    if (p.y > maxY) maxY = p.y;
-  }
+  const { minX, maxX, maxY } = boundsOf([
+    ...farLeg.parts,
+    ...nearLeg.parts,
+    sideTorso(hip, shoulder),
+    head,
+  ]);
 
   if (spec.prop === "dip") {
     const top = Math.max(nearArm.end.y, farArm.end.y);
     const hx = (nearArm.end.x + farArm.end.x) / 2;
-    shapes.push({ pts: rect(hx - 108, top, 124, 46), fill: fill.prop });
+    shapes.push({ pts: rect(hx - 118, top, 136, 48), fill: fill.prop });
   } else if (spec.prop === "skull") {
     const mid = { x: (hip.x + shoulder.x) / 2, y: (hip.y + shoulder.y) / 2 };
-    const backY = mid.y - n.y * 18;
-    const left = Math.min(headCenter.x, hip.x, nearLeg.knee.x) - 18;
-    const right = Math.max(headCenter.x, hip.x, nearLeg.knee.x) + 24;
-    shapes.push({ pts: rect(left, backY, right - left, 30), fill: fill.prop });
+    const backY = mid.y - n.y * 22;
+    const left = Math.min(headCenter.x, hip.x, nearLeg.knee.x) - 22;
+    const right = Math.max(headCenter.x, hip.x, nearLeg.knee.x) + 28;
+    shapes.push({ pts: rect(left, backY, right - left, 32), fill: fill.prop });
   } else if (spec.prop === "ham") {
     const top = nearLeg.toe.y;
     const ground = farLeg.toe.y;
-    const h = Math.max(18, ground - top);
+    const h = Math.max(20, ground - top);
     shapes.push({
-      pts: rect(nearLeg.end.x - 18, top, 52, h),
+      pts: rect(nearLeg.end.x - 22, top, 56, h),
       fill: fill.prop,
     });
   } else if (spec.prop === "wall") {
-    const x = Math.max(nearArm.toe.x, farArm.toe.x) + 6;
-    const top = Math.min(nearArm.toe.y, farArm.toe.y) - 36;
-    shapes.push({ pts: rect(x, top, 14, maxY - top + 8), fill: fill.prop });
+    const x = Math.max(nearArm.toe.x, farArm.toe.x) + 8;
+    const top = Math.min(nearArm.toe.y, farArm.toe.y) - 40;
+    shapes.push({ pts: rect(x, top, 16, maxY - top + 10), fill: fill.prop });
   }
 
-  shapes.push({ pts: rect(minX - 8, maxY + 2, maxX - minX + 16, 7), fill: fill.ground });
+  shapes.push({ pts: rect(minX - 10, maxY + 2, maxX - minX + 20, 8), fill: fill.ground });
 
-  for (const part of farLeg.parts) shapes.push({ pts: part, fill: fill.far });
-  for (const part of farArm.parts) shapes.push({ pts: part, fill: fill.far });
+  for (const part of farLeg.parts) shapes.push({ pts: part, fill: fill.near });
+  for (const part of farArm.parts) shapes.push({ pts: part, fill: fill.near });
   shapes.push({ pts: sideTorso(hip, shoulder), fill: fill.near });
   shapes.push({ pts: neck, fill: fill.near });
   for (const part of nearLeg.parts) shapes.push({ pts: part, fill: fill.near });
@@ -909,66 +992,63 @@ function buildSide(spec: SideSpec, fill: Fill): { pts: Pt[]; fill: string }[] {
 
 function frontTorso(hip: Pt, shoulderY: number): Pt[] {
   const len = hip.y - shoulderY;
-  return [
-    { x: hip.x - 18, y: hip.y },
-    { x: hip.x - 14, y: hip.y - len * 0.38 },
-    { x: hip.x - 30, y: shoulderY + 10 },
-    { x: hip.x - 32, y: shoulderY },
-    { x: hip.x + 32, y: shoulderY },
-    { x: hip.x + 30, y: shoulderY + 10 },
-    { x: hip.x + 14, y: hip.y - len * 0.38 },
-    { x: hip.x + 18, y: hip.y },
-  ];
+  const yAt = (t: number) => shoulderY + len * t;
+  const halfW = (t: number) => {
+    if (t < 0.08) return 34 + (42 - 34) * smooth(t / 0.08);
+    if (t < 0.22) return 42 + (30 - 42) * smooth((t - 0.08) / 0.14);
+    if (t < 0.42) return 30 + (20 - 30) * smooth((t - 0.22) / 0.2);
+    if (t < 0.7) return 20 + (26 - 20) * smooth((t - 0.42) / 0.28);
+    return 26 + (30 - 26) * smooth((t - 0.7) / 0.3);
+  };
+  const n = 24;
+  const right: Pt[] = [];
+  const left: Pt[] = [];
+  for (let i = 0; i <= n; i++) {
+    const t = i / n;
+    const x = halfW(t);
+    right.push({ x: hip.x + x, y: yAt(t) });
+    left.push({ x: hip.x - x, y: yAt(t) });
+  }
+  left.reverse();
+  return [...right, ...left];
 }
 
-function frontEar(cx: number, cy: number, sign: number, r: number): Pt[] {
-  const x = cx + sign * r * 0.92;
-  return [
-    { x: x - sign * 4, y: cy - 8 },
-    { x: x + sign * 7, y: cy - 4 },
-    { x: x + sign * 6, y: cy + 8 },
-    { x: x - sign * 3, y: cy + 6 },
-  ];
-}
 
 function buildFront(spec: FrontSpec, fill: Fill): { pts: Pt[]; fill: string }[] {
   const hip = { x: 0, y: 0 };
   const shoulderY = hip.y - LEN.torso;
-  const shoulderL = { x: hip.x - 30, y: shoulderY + 2 };
-  const shoulderR = { x: hip.x + 30, y: shoulderY + 2 };
-  const hipL = { x: hip.x - 14, y: hip.y + 2 };
-  const hipR = { x: hip.x + 14, y: hip.y + 2 };
+  const shoulderL = { x: hip.x - 36, y: shoulderY + 6 };
+  const shoulderR = { x: hip.x + 36, y: shoulderY + 6 };
+  const hipL = { x: hip.x - 20, y: hip.y + 4 };
+  const hipR = { x: hip.x + 20, y: hip.y + 4 };
   const legL = limbChain(hipL, spec.thighL, spec.shinL, "leg", spec.footL);
   const legR = limbChain(hipR, spec.thighR, spec.shinR, "leg", spec.footR);
   const armL = limbChain(shoulderL, spec.armL, spec.foreL, "arm");
   const armR = limbChain(shoulderR, spec.armR, spec.foreR, "arm");
   const axis = { x: 0, y: -1 };
+  const neckBase = add({ x: hip.x, y: shoulderY }, axis, -6);
   const neckTop = add({ x: hip.x, y: shoulderY }, axis, LEN.neck);
-  const headCenter = add({ x: hip.x, y: shoulderY }, axis, LEN.neck + LEN.head * 0.7);
+  const headCenter = add({ x: hip.x, y: shoulderY }, axis, LEN.neck + LEN.head * 0.62);
   const head = placeHead(headCenter, 0, LEN.head, FRONT_HEAD);
-  const neck = bone({ x: hip.x, y: shoulderY }, neckTop, 12, 11);
+  const neck = solidLimb(neckBase, neckTop, [18, 15, 12, 11]);
 
   const shapes: { pts: Pt[]; fill: string }[] = [];
-  const all = [...legL.parts.flat(), ...legR.parts.flat(), ...armL.parts.flat(), ...frontTorso(hip, shoulderY)];
-  let minX = Infinity;
-  let maxX = -Infinity;
-  let maxY = -Infinity;
-  for (const p of all) {
-    if (p.x < minX) minX = p.x;
-    if (p.x > maxX) maxX = p.x;
-    if (p.y > maxY) maxY = p.y;
-  }
-  shapes.push({ pts: rect(minX - 8, maxY + 2, maxX - minX + 16, 7), fill: fill.ground });
+  const { minX, maxX, maxY } = boundsOf([
+    ...legL.parts,
+    ...legR.parts,
+    ...armL.parts,
+    ...armR.parts,
+    frontTorso(hip, shoulderY),
+    head,
+  ]);
+  shapes.push({ pts: rect(minX - 10, maxY + 2, maxX - minX + 20, 8), fill: fill.ground });
 
-  // Arms first when they cross behind the chest, then torso, then the reaching arm on top.
-  for (const part of legL.parts) shapes.push({ pts: part, fill: fill.far });
-  for (const part of legR.parts) shapes.push({ pts: part, fill: fill.near });
-  for (const part of armL.parts) shapes.push({ pts: part, fill: fill.far });
+  for (const part of legL.parts) shapes.push({ pts: part, fill: fill.near });
+  for (const part of armL.parts) shapes.push({ pts: part, fill: fill.near });
   shapes.push({ pts: frontTorso(hip, shoulderY), fill: fill.near });
   shapes.push({ pts: neck, fill: fill.near });
+  for (const part of legR.parts) shapes.push({ pts: part, fill: fill.near });
   for (const part of armR.parts) shapes.push({ pts: part, fill: fill.near });
-  shapes.push({ pts: frontEar(headCenter.x, headCenter.y, -1, LEN.head), fill: fill.near });
-  shapes.push({ pts: frontEar(headCenter.x, headCenter.y, 1, LEN.head), fill: fill.near });
   shapes.push({ pts: head, fill: fill.near });
   return shapes;
 }

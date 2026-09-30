@@ -32,7 +32,7 @@ export function DigitalHuman({
       shapeRendering="geometricPrecision"
     >
       {fig.shapes.map((shape, i) => (
-        <path key={i} d={shape.d} fill={shape.fill} />
+        <path key={i} d={shape.d} fill={shape.fill} stroke="none" />
       ))}
     </svg>
   );
