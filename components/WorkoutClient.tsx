@@ -38,6 +38,8 @@ import {
 } from "@/lib/coach";
 import { createTimer, type TimerSnapshot } from "@/lib/timer";
 import { notifySetComplete } from "@/lib/audio";
+import { pauseMusic, resumeMusic, startMusic, stopMusic } from "@/lib/music";
+import { MusicControls } from "./MusicControls";
 import { formatMs, uid } from "@/lib/format";
 import type { SetResult, WorkoutGoal, WorkoutSession } from "@/lib/types";
 import { ModeSelector } from "./ModeSelector";
@@ -104,6 +106,9 @@ export function WorkoutClient({
     setExplainForm(loadExplainFormPref());
     setMode(loadModePref());
   }, []);
+
+  // Music never outlives the workout screen.
+  useEffect(() => () => stopMusic(), []);
 
   const totalSets = useMemo(() => {
     if (!goal) return 5;
@@ -224,6 +229,8 @@ export function WorkoutClient({
 
   const beginWorkout = useCallback(() => {
     if (!goal) return;
+    // Inside the Begin tap, so iOS/Chrome autoplay rules allow it.
+    startMusic();
     setStartedAt(new Date().toISOString());
     setSets([]);
     setSetIndex(0);
@@ -284,6 +291,7 @@ export function WorkoutClient({
       const ok = evaluateGoal(goal, nextSets);
       setMetGoal(ok);
       setAnnounce(pickWorkoutComplete(ok));
+      stopMusic();
       setPhase("summary");
       return;
     }
@@ -362,6 +370,7 @@ export function WorkoutClient({
         case "start":
         case "resume":
           setAnnounce(ackCommand(cmd === "start" ? "start" : "resume"));
+          resumeMusic();
           if (!timerSnap?.running && !countdownBusy.current) {
             void runPreCountdown(true);
           } else if (!timerSnap?.running) {
@@ -370,6 +379,7 @@ export function WorkoutClient({
           break;
         case "pause":
           timerRef.current?.pause();
+          pauseMusic();
           setAnnounce(ackCommand("pause"));
           break;
         case "reset":
@@ -401,6 +411,7 @@ export function WorkoutClient({
       type="button"
       onClick={() => {
         teardownTimer();
+        stopMusic();
         onExit();
       }}
       className="text-sm text-zinc-400"
@@ -411,7 +422,10 @@ export function WorkoutClient({
     <Link
       href={`/exercise/${exercise.slug}`}
       className="text-sm text-zinc-400"
-      onClick={() => teardownTimer()}
+      onClick={() => {
+        teardownTimer();
+        stopMusic();
+      }}
     >
       ← Back
     </Link>
@@ -484,6 +498,7 @@ export function WorkoutClient({
                 variant="segmented"
               />
             )}
+            <MusicControls className="mt-3" />
             <div className="mt-3 min-h-0 flex-1 overflow-hidden">
               <CoachBot
                 active={false}
@@ -648,6 +663,7 @@ export function WorkoutClient({
             className="text-sm text-zinc-500"
             onClick={() => {
               teardownTimer();
+              stopMusic();
               onExit();
             }}
           >
@@ -657,7 +673,10 @@ export function WorkoutClient({
           <Link
             href={`/exercise/${exercise.slug}`}
             className="text-sm text-zinc-500"
-            onClick={() => teardownTimer()}
+            onClick={() => {
+        teardownTimer();
+        stopMusic();
+      }}
           >
             Exit
           </Link>
@@ -720,6 +739,7 @@ export function WorkoutClient({
         <button
           type="button"
           onClick={() => {
+            resumeMusic();
             if (countdownBusy.current) return;
             if (!timerSnap?.running) void runPreCountdown(true);
             else timerRef.current?.start();
@@ -730,7 +750,10 @@ export function WorkoutClient({
         </button>
         <button
           type="button"
-          onClick={() => timerRef.current?.pause()}
+          onClick={() => {
+            timerRef.current?.pause();
+            pauseMusic();
+          }}
           className="flex min-h-[48px] items-center justify-center rounded-xl bg-zinc-700 text-sm font-bold text-white"
         >
           Pause

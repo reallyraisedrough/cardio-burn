@@ -6,6 +6,7 @@
 import type { Exercise } from "./types";
 import type { IntensityMode } from "./modes";
 import { MODE_PRESETS, isIntensityMode, migrateModeId } from "./modes";
+import { duckMusic, unduckMusic } from "./music";
 
 /**
  * Slightly energetic human trainer — not a deep slow robot.
@@ -120,6 +121,19 @@ export function pickCoachVoice(): SpeechSynthesisVoice | null {
   return scored[0]?.v ?? pool[0] ?? null;
 }
 
+/** Each utterance gets a token so a cancelled cue can't un-duck the one replacing it. */
+let speechToken = 0;
+let unduckTimer: ReturnType<typeof setTimeout> | null = null;
+
+function releaseDuck(token: number) {
+  if (token !== speechToken) return;
+  if (unduckTimer) {
+    clearTimeout(unduckTimer);
+    unduckTimer = null;
+  }
+  unduckMusic();
+}
+
 export function cancelCoachSpeech(): void {
   if (typeof window === "undefined" || !window.speechSynthesis) return;
   try {
@@ -127,6 +141,7 @@ export function cancelCoachSpeech(): void {
   } catch {
     /* optional */
   }
+  releaseDuck(speechToken);
 }
 
 export type SpeakOpts = {
@@ -161,6 +176,17 @@ export function speakCoach(
       u.voice = voice;
       if (voice.lang) u.lang = voice.lang;
     }
+    // Duck workout music while the coach talks; restore when the cue ends.
+    const token = ++speechToken;
+    u.onstart = () => {
+      if (token === speechToken) duckMusic();
+    };
+    u.onend = () => releaseDuck(token);
+    u.onerror = () => releaseDuck(token);
+    duckMusic();
+    if (unduckTimer) clearTimeout(unduckTimer);
+    // Safety net: some engines (iOS) can drop onend; never leave music stuck low.
+    unduckTimer = setTimeout(() => releaseDuck(token), estimateSpeakMs(trimmed, rate) + 2500);
     window.speechSynthesis.speak(u);
   } catch {
     /* TTS optional */

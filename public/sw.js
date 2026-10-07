@@ -1,5 +1,6 @@
 /* Cardio Burner — offline shell + local inspiration notifications */
-const CACHE = "cardio-burner-v15";
+const CACHE = "cardio-burner-v16";
+const MUSIC_CACHE = "cardio-burner-music-v1";
 const PRECACHE = ["/", "/manifest.webmanifest", "/icons/icon-192.png"];
 
 self.addEventListener("install", (event) => {
@@ -12,7 +13,11 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches
       .keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+      .then((keys) =>
+        Promise.all(
+          keys.filter((k) => k !== CACHE && k !== MUSIC_CACHE).map((k) => caches.delete(k))
+        )
+      )
       .then(() => self.clients.claim())
   );
 });
@@ -21,7 +26,14 @@ self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET") return;
   // 4K pose exports are downloads only: never precached or runtime-cached (too heavy).
-  if (new URL(request.url).pathname.startsWith("/poses-4k/")) return;
+  const path = new URL(request.url).pathname;
+  if (path.startsWith("/poses-4k/")) return;
+  // Workout music: not precached. Cached the first time a track plays, then
+  // served (with byte ranges, which iOS needs for audio) from the cache.
+  if (path.startsWith("/music/") && path.endsWith(".mp3")) {
+    event.respondWith(musicResponse(request));
+    return;
+  }
   event.respondWith(
     caches.match(request).then((cached) => {
       const fetched = fetch(request)
@@ -37,6 +49,63 @@ self.addEventListener("fetch", (event) => {
     })
   );
 });
+
+const musicFetches = new Set();
+
+function cacheWholeTrack(url) {
+  if (musicFetches.has(url)) return;
+  musicFetches.add(url);
+  fetch(url)
+    .then((res) => {
+      if (res.status === 200) return caches.open(MUSIC_CACHE).then((c) => c.put(url, res));
+    })
+    .catch(() => {})
+    .finally(() => musicFetches.delete(url));
+}
+
+async function rangeFrom(cached, rangeHeader) {
+  const buf = await cached.arrayBuffer();
+  const size = buf.byteLength;
+  const m = /bytes=(\d*)-(\d*)/.exec(rangeHeader || "");
+  let start = m && m[1] ? Number(m[1]) : 0;
+  let end = m && m[2] ? Number(m[2]) : size - 1;
+  if (m && !m[1] && m[2]) {
+    start = Math.max(0, size - Number(m[2]));
+    end = size - 1;
+  }
+  end = Math.min(end, size - 1);
+  if (start >= size || start > end) {
+    return new Response(null, { status: 416, headers: { "Content-Range": `bytes */${size}` } });
+  }
+  return new Response(buf.slice(start, end + 1), {
+    status: 206,
+    headers: {
+      "Content-Type": cached.headers.get("Content-Type") || "audio/mpeg",
+      "Content-Range": `bytes ${start}-${end}/${size}`,
+      "Content-Length": String(end - start + 1),
+      "Accept-Ranges": "bytes",
+    },
+  });
+}
+
+async function musicResponse(request) {
+  const url = new URL(request.url).href;
+  const range = request.headers.get("range");
+  const cached = await caches.match(url, { cacheName: MUSIC_CACHE });
+  if (cached) return range ? rangeFrom(cached, range) : cached;
+  try {
+    const res = await fetch(request);
+    if (res.status === 200 && !range) {
+      const copy = res.clone();
+      caches.open(MUSIC_CACHE).then((c) => c.put(url, copy)).catch(() => {});
+    } else if (res.ok) {
+      cacheWholeTrack(url);
+    }
+    return res;
+  } catch (err) {
+    return Response.error();
+  }
+}
 
 /** Client asks SW to display a notification (preferred path). */
 self.addEventListener("message", (event) => {
