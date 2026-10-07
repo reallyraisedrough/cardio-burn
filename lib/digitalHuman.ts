@@ -877,9 +877,12 @@ function torsoHalf(t: number): number {
 
 const THIGH_R = [16, 24, 20, 13];
 const SHIN_R = [12, 14, 21, 16, 10];
-const ARM_R = [12, 15, 13, 10];
-const FORE_R = [10, 12.5, 11, 8];
-const HAND_R = [7, 7.6, 5.6];
+const ARM_R = [11.5, 13.5, 12, 9.5];
+/** Forearm: full below the elbow, tapering to a slim wrist. */
+const FORE_R = [9, 10.2, 8.4, 6.4, 5];
+/** Hand, wrist to fingertips: palm widens a little, fingers taper to a round tip. */
+const HAND_R = [4.6, 5.5, 5.9, 5.5, 4.7, 3.9];
+const HAND_LEN = 20;
 
 type Raw = {
   pts: Pt[];
@@ -992,9 +995,6 @@ function sideTank(hip: Pt, shoulder: Pt): Pt[] {
   return sideEdges(hip, shoulder, 0.3, 0.93, 28, strapFront, strapBack);
 }
 
-function sideShorts(hip: Pt, shoulder: Pt): Pt[] {
-  return sideEdges(hip, shoulder, 0, 0.48, 20, () => 1, () => 1);
-}
 
 function sideWaist(hip: Pt, shoulder: Pt): Pt[] {
   return sideEdges(hip, shoulder, 0.34, 0.44, 10, () => 1, () => 1);
@@ -1050,8 +1050,6 @@ function sideTankDetail(shapes: Raw[], hip: Pt, shoulder: Pt, pal: Palette) {
 function sideShortsDetail(shapes: Raw[], hip: Pt, shoulder: Pt) {
   const T = (pairs: [number, number][]) => torsoPts(hip, shoulder, pairs);
   line(shapes, T([[0.34, -0.05], [0.18, -0.08], [0.02, -0.1]]), "#2e2e2e", 0.85, 0.6);
-  line(shapes, T([[0.3, 0.9], [0.18, 0.62], [0.05, 0.48]]), "#000000", 0.55, 0.9);
-  line(shapes, T([[0.29, 0.76], [0.17, 0.5], [0.06, 0.38]]), "#3d3d3d", 0.5, 0.55);
   line(shapes, T([[0.3, -0.8], [0.2, -0.55]]), "#000000", 0.45, 0.8);
 }
 
@@ -1119,9 +1117,6 @@ function frontTank(hip: Pt, shoulderY: number): Pt[] {
   return frontBand(hip, shoulderY, 0.02, 0.62, 24, frontArmhole);
 }
 
-function frontShorts(hip: Pt, shoulderY: number): Pt[] {
-  return frontBand(hip, shoulderY, 0.56, 1, 18, () => 1);
-}
 
 function frontWaist(hip: Pt, shoulderY: number): Pt[] {
   return frontBand(hip, shoulderY, 0.54, 0.64, 10, () => 1);
@@ -1666,8 +1661,8 @@ function limbChain(
   if (kind === "arm") {
     const root = add(origin, dUpper, -4);
     const elbow = add(knee, dLower, -8);
-    const hand = add(end, dLower, LEN.hand);
-    const wrist = add(end, dLower, -4);
+    const hand = add(end, dLower, HAND_LEN - 2);
+    const wrist = add(end, dLower, -2);
     const segs: Seg[] = [
       { a: root, b: knee, r: ARM_R },
       { a: elbow, b: end, r: FORE_R },
@@ -1686,14 +1681,6 @@ function limbChain(
   return { knee, end, toe, parts: [...segs.map((s) => solidLimb(s.a, s.b, s.r)), footPoly(end, fd)], segs };
 }
 
-function limbSegment(a: Pt, b: Pt, radii: number[], t0: number, t1: number): Pt[] {
-  const seg: Seg = { a, b, r: radii };
-  const steps = 16;
-  const pts: Pt[] = [];
-  for (let i = 0; i <= steps; i++) pts.push(segAt(seg, t0 + ((t1 - t0) * i) / steps, 1));
-  for (let i = steps; i >= 0; i--) pts.push(segAt(seg, t0 + ((t1 - t0) * i) / steps, -1));
-  return pts;
-}
 
 /**
  * Muscle definition. ant = which side of the limb faces forward (-1 or 1 in side view,
@@ -1725,14 +1712,22 @@ function forearmMuscles(shapes: Raw[], seg: Seg, skin: string, ant: number, med:
   glaze(shapes, segLens(seg, 0.86, 1.0, 0, 0.5), D, 0.16);
 }
 
-function handDetail(shapes: Raw[], seg: Seg, skin: string) {
+/** Fingers held together (three thin separations) plus a separate thumb on thumbSide. */
+function handDetail(shapes: Raw[], seg: Seg, skin: string, thumbSide: number) {
   const L = lit(skin);
   const D = dark(skin);
-  glaze(shapes, segLens(seg, 0.1, 0.55, 0, 0.5), L, 0.24);
-  for (const off of [-0.45, 0, 0.45]) {
-    line(shapes, segPts(seg, [[0.5, off], [0.72, off * 0.95], [0.94, off * 0.85]]), D, 0.32, 0.45);
+  const side = thumbSide >= 0 ? 1 : -1;
+  glaze(shapes, segLens(seg, 0.06, 0.5, -side * 0.1, 0.55), L, 0.22);
+  line(shapes, segPts(seg, [[0.5, -0.85], [0.47, 0], [0.5, 0.85]]), D, 0.22, 0.4);
+  for (const off of [-0.42, 0, 0.42]) {
+    line(shapes, segPts(seg, [[0.55, off], [0.75, off * 0.95], [0.93, off * 0.75]]), D, 0.34, 0.38);
   }
-  glaze(shapes, segLens(seg, 0.38, 0.5, 0, 0.82), D, 0.12);
+  const base = segAt(seg, 0.14, side * 0.62);
+  const tip = segAt(seg, 0.6, side * 1.38);
+  const thumb: Seg = { a: base, b: tip, r: [2.9, 2.7, 2.2] };
+  push(shapes, solidLimb(thumb.a, thumb.b, thumb.r), skin);
+  line(shapes, segPts(thumb, [[0.15, -side * 0.9], [0.45, -side * 0.95], [0.75, -side * 0.85]]), D, 0.3, 0.4);
+  glaze(shapes, worldOval(segAt(thumb, 0.92, side * 0.1), 1.4, 1.1, segAngle(thumb)), L, 0.4);
 }
 
 function thighMuscles(shapes: Raw[], seg: Seg, skin: string, ant: number, med: number) {
@@ -1796,19 +1791,91 @@ function pushLeg(
   pushShoe(shapes, leg.end, footDeg, shoe, pal);
 }
 
-function pushShortsLeg(shapes: Raw[], origin: Pt, thighDeg: number, fill: string, ant: number, med: number) {
+function monotoneHull(points: Pt[]): Pt[] {
+  const pts = points.slice().sort((a, b) => a.x - b.x || a.y - b.y);
+  if (pts.length < 3) return pts;
+  const cross = (o: Pt, a: Pt, b: Pt) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+  const lower: Pt[] = [];
+  for (const p of pts) {
+    while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], p) <= 0) lower.pop();
+    lower.push(p);
+  }
+  const upper: Pt[] = [];
+  for (let i = pts.length - 1; i >= 0; i--) {
+    const p = pts[i];
+    while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], p) <= 0) upper.pop();
+    upper.push(p);
+  }
+  upper.pop();
+  lower.pop();
+  return [...lower, ...upper];
+}
+
+/** Hull points resampled densely so the smooth outline hugs the hull instead of bowing out. */
+function denseLoop(loop: Pt[], step = 3): Pt[] {
+  const out: Pt[] = [];
+  for (let i = 0; i < loop.length; i++) {
+    const a = loop[i];
+    const b = loop[(i + 1) % loop.length];
+    const n = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / step));
+    for (let k = 0; k < n; k++) out.push(lerpPt(a, b, k / n));
+  }
+  return out;
+}
+
+/** Shorts leg: loose tube over the upper thigh, same axis as the thigh, round at the hip. */
+function shortsTube(origin: Pt, thighDeg: number): Seg {
   const d = dir(thighDeg);
-  const root = add(origin, d, -18);
-  const knee = add(origin, d, LEN.thigh);
-  const radii = THIGH_R.map((r, i) => r * (i === 0 ? 1.7 : i === 1 ? 1.2 : 1.04));
-  push(shapes, limbSegment(root, knee, radii, 0, 0.5), fill);
-  const seg: Seg = { a: root, b: knee, r: radii };
+  return { a: add(origin, d, -8), b: add(origin, d, LEN.thigh), r: THIGH_R.map((r) => r * 1.07) };
+}
+
+const SHORTS_HEM_T = 0.5;
+
+function tubeOutline(seg: Seg, t1: number): Pt[] {
+  const steps = 16;
+  const pts: Pt[] = [];
+  for (let i = 0; i <= steps; i++) pts.push(segAt(seg, (t1 * i) / steps, 1));
+  for (let i = steps; i >= 0; i--) pts.push(segAt(seg, (t1 * i) / steps, -1));
+  const dx = seg.b.x - seg.a.x;
+  const dy = seg.b.y - seg.a.y;
+  const len = Math.hypot(dx, dy) || 1;
+  const ux = dx / len;
+  const uy = dy / len;
+  const r = radiusAt(seg.r, 0);
+  for (let i = 1; i < CAP_STEPS; i++) {
+    const ang = (Math.PI * i) / CAP_STEPS;
+    pts.push({
+      x: seg.a.x - Math.cos(ang) * -uy * r - Math.sin(ang) * ux * r,
+      y: seg.a.y - Math.cos(ang) * ux * r - Math.sin(ang) * uy * r,
+    });
+  }
+  return pts;
+}
+
+/**
+ * Pelvis part of the shorts: one piece wrapping the lower torso, the glutes and the
+ * near thigh root, so the garment reads as continuous with both legs.
+ */
+function shortsPelvis(band: Pt[], roots: Seg[]): Pt[] {
+  const pts = [...band];
+  for (const root of roots) {
+    // Hip joint (8 units down the tube); the tube's own round cap covers the thigh root.
+    const len = Math.hypot(root.b.x - root.a.x, root.b.y - root.a.y) || 1;
+    const t = 8 / len;
+    const r = radiusAt(root.r, t);
+    pts.push(...worldOval(segAt(root, t, 0), r, r, 0, 28));
+  }
+  return denseLoop(monotoneHull(pts));
+}
+
+function pushShortsLeg(shapes: Raw[], seg: Seg, fill: string, ant: number, med: number) {
+  shapes.push({ pts: tubeOutline(seg, SHORTS_HEM_T), fill, shade: false });
+  const lead = ant !== 0 ? ant : med;
+  glaze(shapes, segLens(seg, 0.1, 0.46, lead * 0.4, 0.34), lit(fill), 0.09);
   line(shapes, segPts(seg, [[0.488, -0.97], [0.5, 0], [0.488, 0.97]]), "#050505", 0.7, 1.1);
   line(shapes, segPts(seg, [[0.455, -0.95], [0.468, 0], [0.455, 0.95]]), "#3a3a3a", 0.7, 0.4);
-  const lead = ant !== 0 ? ant : med;
   line(shapes, segPts(seg, [[0.12, lead * 0.7], [0.27, lead * 0.35], [0.43, lead * 0.1]]), "#000000", 0.5, 0.9);
   line(shapes, segPts(seg, [[0.14, lead * 0.55], [0.29, lead * 0.2], [0.44, -lead * 0.05]]), "#3d3d3d", 0.5, 0.6);
-  line(shapes, segPts(seg, [[0.3, -lead * 0.2], [0.44, -lead * 0.45]]), "#000000", 0.4, 0.8);
   if (ant !== 0) {
     line(shapes, segPts(seg, [[0.04, -ant * 0.05], [0.26, -ant * 0.08], [0.49, -ant * 0.1]]), "#2e2e2e", 0.8, 0.6);
   }
@@ -1820,7 +1887,7 @@ function pushArm(shapes: Raw[], arm: Chain, skin: string, ant: number, med: numb
   push(shapes, arm.parts[1], skin);
   forearmMuscles(shapes, arm.segs[1], skin, ant, med);
   push(shapes, arm.parts[2], skin);
-  handDetail(shapes, arm.segs[2], skin);
+  handDetail(shapes, arm.segs[2], skin, ant !== 0 ? ant : med);
 }
 
 function autoFoot(shin: number): number {
@@ -1943,8 +2010,8 @@ function buildSide(spec: SideSpec, pal: Palette): Raw[] {
     x: (shoulder.x - hip.x) / LEN.torso,
     y: (shoulder.y - hip.y) / LEN.torso,
   };
-  const farHip = { x: hip.x - nrm.x * 14, y: hip.y - nrm.y * 7 };
-  const farShoulder = { x: shoulder.x - nrm.x * 10, y: shoulder.y - nrm.y * 5 };
+  const farHip = { x: hip.x - nrm.x * 7, y: hip.y - nrm.y * 4 };
+  const farShoulder = { x: shoulder.x - nrm.x * 6, y: shoulder.y - nrm.y * 3 };
   const nearFoot = spec.foot ?? autoFoot(spec.shin);
   const farFoot = spec.footFar ?? autoFoot(spec.shinFar);
   const nearLeg = limbChain(hip, spec.thigh, spec.shin, "leg", nearFoot);
@@ -1992,7 +2059,8 @@ function buildSide(spec: SideSpec, pal: Palette): Raw[] {
 
   const ANT = -1;
   pushLeg(shapes, farLeg, farFoot, pal.skinFar, pal.shoeFar, pal, ANT, 0);
-  pushShortsLeg(shapes, farHip, spec.thighFar, pal.shortsFar, ANT, 0);
+  const farTube = shortsTube(farHip, spec.thighFar);
+  pushShortsLeg(shapes, farTube, pal.shortsFar, ANT, 0);
   pushArm(shapes, farArm, pal.skinFar, ANT, 0);
 
   push(shapes, sideTorso(hip, shoulder), pal.skin);
@@ -2000,11 +2068,14 @@ function buildSide(spec: SideSpec, pal: Palette): Raw[] {
   push(shapes, sideTank(hip, shoulder), pal.tank);
   push(shapes, sideChest(hip, shoulder), pal.tankLite);
   sideTankDetail(shapes, hip, shoulder, pal);
-  push(shapes, sideShorts(hip, shoulder), pal.shorts);
+  const nearTube = shortsTube(hip, spec.thigh);
+  shapes.push({ pts: shortsPelvis(sideEdges(hip, shoulder, -0.03, 0.44, 22, () => 1.04, () => 1.04), [nearTube, farTube]), fill: pal.shorts, shade: false });
+  glaze(shapes, torsoLens(hip, shoulder, 0.02, 0.28, -0.55, 0.3), lit(pal.shorts), 0.1);
+  line(shapes, torsoPts(hip, shoulder, [[0.26, -0.97], [0.12, -0.9], [0.02, -0.6]]), "#000000", 0.45, 0.85);
+  pushShortsLeg(shapes, nearTube, pal.shorts, ANT, 0);
   sideShortsDetail(shapes, hip, shoulder);
   push(shapes, sideWaist(hip, shoulder), pal.waist, false);
   sideWaistDetail(shapes, hip, shoulder);
-  pushShortsLeg(shapes, hip, spec.thigh, pal.shorts, ANT, 0);
   pushShin(shapes, nearLeg, pal.skin, ANT, 0);
   pushShoe(shapes, nearLeg.end, nearFoot, pal.shoe, pal);
   push(shapes, neck, pal.skin);
@@ -2063,12 +2134,19 @@ function buildFront(spec: FrontSpec, pal: Palette): Raw[] {
   frontTankDetail(shapes, hip, shoulderY, pal);
   push(shapes, frontScoop(hip, shoulderY), pal.skin);
   frontScoopDetail(shapes, hip, shoulderY, pal);
-  push(shapes, frontShorts(hip, shoulderY), pal.shorts);
+  const tubeL = shortsTube(hipL, spec.thighL);
+  const tubeR = shortsTube(hipR, spec.thighR);
+  shapes.push({ pts: shortsPelvis(frontBand(hip, shoulderY, 0.56, 1.02, 20, () => 1.03), [tubeL, tubeR]), fill: pal.shorts, shade: false });
+  pushShortsLeg(shapes, tubeL, pal.shorts, 0, -1);
+  pushShortsLeg(shapes, tubeR, pal.shorts, 0, 1);
   frontShortsDetail(shapes, hip, shoulderY);
+  // Inseam: where the two shorts legs meet below the crotch.
+  const innerL = segAt(tubeL, SHORTS_HEM_T, -1);
+  const innerR = segAt(tubeR, SHORTS_HEM_T, 1);
+  const crotch = { x: hip.x, y: hip.y + 4 };
+  line(shapes, [crotch, lerpPt(crotch, lerpPt(innerL, innerR, 0.5), 0.55), lerpPt(innerL, innerR, 0.5)], "#000000", 0.6, 0.9);
   push(shapes, frontWaist(hip, shoulderY), pal.waist, false);
   frontWaistDetail(shapes, hip, shoulderY);
-  pushShortsLeg(shapes, hipL, spec.thighL, pal.shorts, 0, -1);
-  pushShortsLeg(shapes, hipR, spec.thighR, pal.shorts, 0, 1);
   pushArm(shapes, armL, pal.skin, 0, -1);
   pushArm(shapes, armR, pal.skin, 0, 1);
   push(shapes, neck, pal.skin);
