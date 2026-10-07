@@ -4,6 +4,10 @@ import type { ExerciseSlug } from "./types";
  * One digital human, posed for every exercise.
  * Same person every time: shaded skin, short hair, navy tank, black shorts,
  * and shoes. Thick chest, hips, thighs, calves, and arms. No blur, no photos.
+ *
+ * Built for 4K: every outline is a smooth Bézier spline (no polygon facets), with
+ * muscle light/shadow glazes, a detailed face, hair strands, fabric folds and
+ * trainer detail. Pure vector, so it stays crisp at any size.
  */
 
 export type PosePhase = "start" | "exec";
@@ -11,7 +15,14 @@ export type FigureTone = "paper" | "mist";
 
 type Pt = { x: number; y: number };
 type Shade = false | "linear" | "radial";
-type Shape = { d: string; fill: string; shade: Shade };
+export type Shape = {
+  d: string;
+  fill: string;
+  shade: Shade;
+  stroke?: string;
+  width?: number;
+  opacity?: number;
+};
 
 type Prop = "dip" | "skull" | "ham" | "wall";
 
@@ -719,6 +730,36 @@ function add(p: Pt, d: Pt, len: number): Pt {
   return { x: p.x + d.x * len, y: p.y + d.y * len };
 }
 
+function lerpPt(a: Pt, b: Pt, t: number): Pt {
+  return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
+}
+
+function catmull(p0: number, p1: number, p2: number, p3: number, f: number): number {
+  return (
+    0.5 *
+    (2 * p1 +
+      (-p0 + p2) * f +
+      (2 * p0 - 5 * p1 + 4 * p2 - p3) * f * f +
+      (-p0 + 3 * p1 - 3 * p2 + p3) * f * f * f)
+  );
+}
+
+/** Smooth radius along a limb: a spline through the muscle profile, not straight facets. */
+function radiusAt(radii: number[], t: number): number {
+  const n = radii.length - 1;
+  if (n <= 0) return radii[0];
+  const x = Math.min(1, Math.max(0, t)) * n;
+  const i = Math.min(n - 1, Math.floor(x));
+  const f = x - i;
+  const g = (k: number) => radii[Math.max(0, Math.min(n, k))];
+  return Math.max(0.2, catmull(g(i - 1), g(i), g(i + 1), g(i + 2), f));
+}
+
+const LIMB_STEPS = 18;
+const CAP_STEPS = 12;
+
+type Seg = { a: Pt; b: Pt; r: number[] };
+
 /** Thick limb with a muscle profile and round ends so joints fuse into one body. */
 function solidLimb(a: Pt, b: Pt, radii: number[]): Pt[] {
   const dx = b.x - a.x;
@@ -728,30 +769,28 @@ function solidLimb(a: Pt, b: Pt, radii: number[]): Pt[] {
   const uy = dy / len;
   const px = -uy;
   const py = ux;
-  const n = radii.length - 1;
   const pts: Pt[] = [];
-  const cap = 7;
-  for (let i = 0; i <= n; i++) {
-    const t = i / n;
-    const r = radii[i];
+  for (let i = 0; i <= LIMB_STEPS; i++) {
+    const t = i / LIMB_STEPS;
+    const r = radiusAt(radii, t);
     pts.push({ x: a.x + dx * t + px * r, y: a.y + dy * t + py * r });
   }
-  const rb = radii[n];
-  for (let i = 1; i < cap; i++) {
-    const ang = (Math.PI * i) / cap;
+  const rb = radiusAt(radii, 1);
+  for (let i = 1; i < CAP_STEPS; i++) {
+    const ang = (Math.PI * i) / CAP_STEPS;
     pts.push({
       x: b.x + Math.cos(ang) * px * rb + Math.sin(ang) * ux * rb,
       y: b.y + Math.cos(ang) * py * rb + Math.sin(ang) * uy * rb,
     });
   }
-  for (let i = n; i >= 0; i--) {
-    const t = i / n;
-    const r = radii[i];
+  for (let i = LIMB_STEPS; i >= 0; i--) {
+    const t = i / LIMB_STEPS;
+    const r = radiusAt(radii, t);
     pts.push({ x: a.x + dx * t - px * r, y: a.y + dy * t - py * r });
   }
-  const ra = radii[0];
-  for (let i = 1; i < cap; i++) {
-    const ang = (Math.PI * i) / cap;
+  const ra = radiusAt(radii, 0);
+  for (let i = 1; i < CAP_STEPS; i++) {
+    const ang = (Math.PI * i) / CAP_STEPS;
     pts.push({
       x: a.x - Math.cos(ang) * px * ra - Math.sin(ang) * ux * ra,
       y: a.y - Math.cos(ang) * py * ra - Math.sin(ang) * uy * ra,
@@ -760,6 +799,37 @@ function solidLimb(a: Pt, b: Pt, radii: number[]): Pt[] {
   return pts;
 }
 
+/** Point on a limb: t along its length, off as a signed fraction of the local radius. */
+function segAt(seg: Seg, t: number, off: number): Pt {
+  const dx = seg.b.x - seg.a.x;
+  const dy = seg.b.y - seg.a.y;
+  const len = Math.hypot(dx, dy) || 1;
+  const r = radiusAt(seg.r, t) * off;
+  return { x: seg.a.x + dx * t + (-dy / len) * r, y: seg.a.y + dy * t + (dx / len) * r };
+}
+
+function segPts(seg: Seg, pairs: [number, number][]): Pt[] {
+  return pairs.map(([t, off]) => segAt(seg, t, off));
+}
+
+/** Lens-shaped muscle belly lying along a limb. */
+function segLens(seg: Seg, t0: number, t1: number, center: number, half: number, n = 16): Pt[] {
+  const top: Pt[] = [];
+  const bot: Pt[] = [];
+  for (let i = 0; i <= n; i++) {
+    const u = i / n;
+    const t = t0 + (t1 - t0) * u;
+    const b = Math.pow(Math.sin(Math.PI * u), 0.75);
+    top.push(segAt(seg, t, center + half * b));
+    bot.push(segAt(seg, t, center - half * b));
+  }
+  bot.reverse();
+  return [...top, ...bot.slice(1, -1)];
+}
+
+function segAngle(seg: Seg): number {
+  return (Math.atan2(seg.b.y - seg.a.y, seg.b.x - seg.a.x) * 180) / Math.PI;
+}
 
 function rect(x: number, y: number, w: number, h: number): Pt[] {
   return [
@@ -809,11 +879,43 @@ const THIGH_R = [16, 24, 20, 13];
 const SHIN_R = [12, 14, 21, 16, 10];
 const ARM_R = [12, 15, 13, 10];
 const FORE_R = [10, 12.5, 11, 8];
+const HAND_R = [7, 7.6, 5.6];
 
-type Raw = { pts: Pt[]; fill: string; shade: Shade };
+type Raw = {
+  pts: Pt[];
+  fill: string;
+  shade: Shade;
+  sharp?: boolean;
+  stroke?: string;
+  width?: number;
+  opacity?: number;
+};
 
 function push(shapes: Raw[], pts: Pt[], fill: string, shade: Shade = "linear") {
   shapes.push({ pts, fill, shade });
+}
+
+/** Hard-edged prop (bench, wall, floor): straight sides on purpose. */
+function pushFlat(shapes: Raw[], pts: Pt[], fill: string) {
+  shapes.push({ pts, fill, shade: false, sharp: true });
+}
+
+/** Translucent flat tone laid over a body part: muscle light and shadow. Not a blur. */
+function glaze(shapes: Raw[], pts: Pt[], fill: string, opacity: number) {
+  shapes.push({ pts, fill, shade: false, opacity });
+}
+
+/** Thin open curve: hair strands, seams, folds, creases, laces. */
+function line(shapes: Raw[], pts: Pt[], color: string, opacity: number, width: number) {
+  shapes.push({ pts, fill: "none", shade: false, stroke: color, width, opacity });
+}
+
+function lit(c: string): string {
+  return mixHex(c, "#fff1e4", 0.34);
+}
+
+function dark(c: string): string {
+  return mixHex(c, "#140c08", 0.46);
 }
 
 function spineFrame(hip: Pt, shoulder: Pt): { dx: number; dy: number; nx: number; ny: number } {
@@ -846,8 +948,34 @@ function sideEdges(
   return [...chest, ...back];
 }
 
+/** Side torso point: t from hip to shoulder, w > 0 toward the chest, w < 0 toward the back. */
+function torsoAt(hip: Pt, shoulder: Pt, t: number, w: number): Pt {
+  const { dx, dy, nx, ny } = spineFrame(hip, shoulder);
+  const width = w >= 0 ? chestW(t) * w : backW(t) * w;
+  return { x: hip.x + dx * t + nx * width, y: hip.y + dy * t + ny * width };
+}
+
+function torsoPts(hip: Pt, shoulder: Pt, pairs: [number, number][]): Pt[] {
+  return pairs.map(([t, w]) => torsoAt(hip, shoulder, t, w));
+}
+
+function torsoLens(hip: Pt, shoulder: Pt, t0: number, t1: number, c: number, h: number): Pt[] {
+  const top: Pt[] = [];
+  const bot: Pt[] = [];
+  const n = 16;
+  for (let i = 0; i <= n; i++) {
+    const u = i / n;
+    const t = t0 + (t1 - t0) * u;
+    const b = Math.pow(Math.sin(Math.PI * u), 0.75);
+    top.push(torsoAt(hip, shoulder, t, c + h * b));
+    bot.push(torsoAt(hip, shoulder, t, c - h * b));
+  }
+  bot.reverse();
+  return [...top, ...bot.slice(1, -1)];
+}
+
 function sideTorso(hip: Pt, shoulder: Pt): Pt[] {
-  return sideEdges(hip, shoulder, 0, 1, 28, () => 1, () => 1);
+  return sideEdges(hip, shoulder, 0, 1, 40, () => 1, () => 1);
 }
 
 function strapFront(t: number): number {
@@ -861,15 +989,15 @@ function strapBack(t: number): number {
 }
 
 function sideTank(hip: Pt, shoulder: Pt): Pt[] {
-  return sideEdges(hip, shoulder, 0.3, 0.93, 18, strapFront, strapBack);
+  return sideEdges(hip, shoulder, 0.3, 0.93, 28, strapFront, strapBack);
 }
 
 function sideShorts(hip: Pt, shoulder: Pt): Pt[] {
-  return sideEdges(hip, shoulder, 0, 0.48, 14, () => 1, () => 1);
+  return sideEdges(hip, shoulder, 0, 0.48, 20, () => 1, () => 1);
 }
 
 function sideWaist(hip: Pt, shoulder: Pt): Pt[] {
-  return sideEdges(hip, shoulder, 0.34, 0.44, 6, () => 1, () => 1);
+  return sideEdges(hip, shoulder, 0.34, 0.44, 10, () => 1, () => 1);
 }
 
 /** Lighter panel along the chest so the pec reads under the tank. */
@@ -877,7 +1005,7 @@ function sideChest(hip: Pt, shoulder: Pt): Pt[] {
   const { dx, dy, nx, ny } = spineFrame(hip, shoulder);
   const outer: Pt[] = [];
   const inner: Pt[] = [];
-  const n = 10;
+  const n = 16;
   for (let i = 0; i <= n; i++) {
     const t = 0.52 + (0.8 - 0.52) * (i / n);
     const bulge = Math.sin((i / n) * Math.PI);
@@ -892,6 +1020,45 @@ function sideChest(hip: Pt, shoulder: Pt): Pt[] {
   }
   inner.reverse();
   return [...outer, ...inner];
+}
+
+/** Tank and shorts fabric on the side view: folds, bindings, seams, waistband. */
+function sideTankDetail(shapes: Raw[], hip: Pt, shoulder: Pt, pal: Palette) {
+  const T = (pairs: [number, number][]) => torsoPts(hip, shoulder, pairs);
+  const fold = dark(pal.tank);
+  const sheen = lit(pal.tankLite);
+  glaze(shapes, torsoLens(hip, shoulder, 0.48, 0.9, -0.72, 0.24), fold, 0.34);
+  glaze(shapes, torsoLens(hip, shoulder, 0.6, 0.86, 0.2, 0.18), sheen, 0.14);
+  line(shapes, T([[0.55, 0.42], [0.53, 0.72], [0.56, 0.97]]), fold, 0.42, 0.9);
+  line(shapes, T([[0.47, -0.92], [0.5, -0.4], [0.48, 0.2], [0.5, 0.9]]), fold, 0.46, 0.95);
+  line(shapes, T([[0.485, -0.86], [0.515, -0.38], [0.497, 0.16]]), sheen, 0.3, 0.55);
+  line(shapes, T([[0.54, -0.82], [0.57, -0.3], [0.555, 0.38]]), fold, 0.4, 0.85);
+  line(shapes, T([[0.555, -0.76], [0.585, -0.28], [0.57, 0.3]]), sheen, 0.26, 0.5);
+  line(shapes, T([[0.61, -0.7], [0.635, -0.22]]), fold, 0.34, 0.75);
+  const front: [number, number][] = [];
+  const back: [number, number][] = [];
+  for (let i = 0; i <= 10; i++) {
+    const t = 0.64 + (0.93 - 0.64) * (i / 10);
+    front.push([t, strapFront(t) * 0.95]);
+    const tb = 0.7 + (0.93 - 0.7) * (i / 10);
+    back.push([tb, -strapBack(tb) * 0.95]);
+  }
+  line(shapes, T(front), pal.tankLite, 0.6, 0.85);
+  line(shapes, T(back), pal.tankLite, 0.45, 0.75);
+}
+
+function sideShortsDetail(shapes: Raw[], hip: Pt, shoulder: Pt) {
+  const T = (pairs: [number, number][]) => torsoPts(hip, shoulder, pairs);
+  line(shapes, T([[0.34, -0.05], [0.18, -0.08], [0.02, -0.1]]), "#2e2e2e", 0.85, 0.6);
+  line(shapes, T([[0.3, 0.9], [0.18, 0.62], [0.05, 0.48]]), "#000000", 0.55, 0.9);
+  line(shapes, T([[0.29, 0.76], [0.17, 0.5], [0.06, 0.38]]), "#3d3d3d", 0.5, 0.55);
+  line(shapes, T([[0.3, -0.8], [0.2, -0.55]]), "#000000", 0.45, 0.8);
+}
+
+function sideWaistDetail(shapes: Raw[], hip: Pt, shoulder: Pt) {
+  const T = (pairs: [number, number][]) => torsoPts(hip, shoulder, pairs);
+  line(shapes, T([[0.437, -0.95], [0.442, 0], [0.437, 0.95]]), "#3a3a3a", 0.75, 0.5);
+  line(shapes, T([[0.35, -0.95], [0.354, 0], [0.35, 0.95]]), "#2a2a2a", 0.8, 0.45);
 }
 
 function frontBand(
@@ -916,8 +1083,31 @@ function frontBand(
   return [...right, ...left];
 }
 
+function frontAt(hip: Pt, shoulderY: number, t: number, w: number): Pt {
+  return { x: hip.x + torsoHalf(t) * w, y: shoulderY + (hip.y - shoulderY) * t };
+}
+
+function frontPts(hip: Pt, shoulderY: number, pairs: [number, number][]): Pt[] {
+  return pairs.map(([t, w]) => frontAt(hip, shoulderY, t, w));
+}
+
+function frontLens(hip: Pt, shoulderY: number, t0: number, t1: number, c: number, h: number): Pt[] {
+  const top: Pt[] = [];
+  const bot: Pt[] = [];
+  const n = 16;
+  for (let i = 0; i <= n; i++) {
+    const u = i / n;
+    const t = t0 + (t1 - t0) * u;
+    const b = Math.pow(Math.sin(Math.PI * u), 0.75);
+    top.push(frontAt(hip, shoulderY, t, c + h * b));
+    bot.push(frontAt(hip, shoulderY, t, c - h * b));
+  }
+  bot.reverse();
+  return [...top, ...bot.slice(1, -1)];
+}
+
 function frontTorso(hip: Pt, shoulderY: number): Pt[] {
-  return frontBand(hip, shoulderY, 0, 1, 24, () => 1);
+  return frontBand(hip, shoulderY, 0, 1, 36, () => 1);
 }
 
 function frontArmhole(t: number): number {
@@ -926,15 +1116,15 @@ function frontArmhole(t: number): number {
 }
 
 function frontTank(hip: Pt, shoulderY: number): Pt[] {
-  return frontBand(hip, shoulderY, 0.02, 0.62, 16, frontArmhole);
+  return frontBand(hip, shoulderY, 0.02, 0.62, 24, frontArmhole);
 }
 
 function frontShorts(hip: Pt, shoulderY: number): Pt[] {
-  return frontBand(hip, shoulderY, 0.56, 1, 12, () => 1);
+  return frontBand(hip, shoulderY, 0.56, 1, 18, () => 1);
 }
 
 function frontWaist(hip: Pt, shoulderY: number): Pt[] {
-  return frontBand(hip, shoulderY, 0.54, 0.64, 6, () => 1);
+  return frontBand(hip, shoulderY, 0.54, 0.64, 10, () => 1);
 }
 
 function frontScoop(hip: Pt, shoulderY: number): Pt[] {
@@ -959,7 +1149,64 @@ function frontPec(hip: Pt, shoulderY: number, side: number): Pt[] {
   return worldOval(c, 11, 9, 0);
 }
 
-function worldOval(c: Pt, rx: number, ry: number, rotDeg: number, n = 14): Pt[] {
+function frontTankDetail(shapes: Raw[], hip: Pt, shoulderY: number, pal: Palette) {
+  const F = (pairs: [number, number][]) => frontPts(hip, shoulderY, pairs);
+  const fold = dark(pal.tank);
+  const sheen = lit(pal.tankLite);
+  for (const s of [-1, 1]) {
+    glaze(shapes, frontLens(hip, shoulderY, 0.1, 0.6, 0.82 * s, 0.16), fold, 0.34);
+    line(shapes, F([[0.41, -0.92 * s], [0.44, -0.5 * s], [0.42, -0.1 * s]]), fold, 0.38, 0.85);
+    line(shapes, F([[0.5, -0.92 * s], [0.53, -0.46 * s], [0.515, -0.05 * s]]), fold, 0.42, 0.9);
+    line(shapes, F([[0.505, -0.86 * s], [0.537, -0.44 * s]]), sheen, 0.28, 0.5);
+    line(shapes, F([[0.04, 0.97 * s], [0.1, 0.92 * s], [0.18, 0.97 * s]]), pal.tankLite, 0.55, 0.8);
+  }
+  line(shapes, F([[0.53, -0.18], [0.545, 0.28]]), fold, 0.36, 0.75);
+  line(shapes, F([[0.47, 0.18], [0.5, 0.55]]), fold, 0.32, 0.7);
+  const scoop = frontScoop(hip, shoulderY);
+  line(shapes, [...scoop.slice(1), scoop[0]], pal.tankLite, 0.6, 0.85);
+}
+
+function frontScoopDetail(shapes: Raw[], hip: Pt, shoulderY: number, pal: Palette) {
+  const D = dark(pal.skin);
+  for (const s of [-1, 1]) {
+    line(
+      shapes,
+      [
+        { x: hip.x + 2.5 * s, y: shoulderY + 4.2 },
+        { x: hip.x + 8 * s, y: shoulderY + 2.6 },
+        { x: hip.x + 14.5 * s, y: shoulderY + 2.2 },
+      ],
+      D,
+      0.34,
+      0.8
+    );
+  }
+  glaze(shapes, worldOval({ x: hip.x, y: shoulderY + 5.2 }, 2.4, 1.7, 0), D, 0.3);
+  glaze(shapes, worldOval({ x: hip.x, y: shoulderY + 10 }, 9, 3.5, 0), lit(pal.skin), 0.18);
+}
+
+function frontShortsDetail(shapes: Raw[], hip: Pt, shoulderY: number) {
+  const F = (pairs: [number, number][]) => frontPts(hip, shoulderY, pairs);
+  line(shapes, F([[0.64, 0], [0.82, 0], [1.0, 0]]), "#2e2e2e", 0.85, 0.6);
+  line(shapes, F([[0.66, 0.05], [0.79, 0.18], [0.87, 0.04]]), "#2e2e2e", 0.65, 0.5);
+  for (const s of [-1, 1]) {
+    line(shapes, F([[0.86, -0.1 * s], [0.93, -0.36 * s], [0.99, -0.62 * s]]), "#000000", 0.5, 0.85);
+    line(shapes, F([[0.85, -0.18 * s], [0.91, -0.44 * s]]), "#3d3d3d", 0.45, 0.5);
+    line(shapes, F([[0.7, 0.92 * s], [0.84, 0.86 * s], [0.98, 0.9 * s]]), "#2e2e2e", 0.7, 0.55);
+  }
+}
+
+function frontWaistDetail(shapes: Raw[], hip: Pt, shoulderY: number) {
+  const F = (pairs: [number, number][]) => frontPts(hip, shoulderY, pairs);
+  line(shapes, F([[0.545, -0.97], [0.541, 0], [0.545, 0.97]]), "#3a3a3a", 0.75, 0.5);
+  line(shapes, F([[0.632, -0.97], [0.636, 0], [0.632, 0.97]]), "#2a2a2a", 0.8, 0.45);
+  const knot = frontAt(hip, shoulderY, 0.6, 0);
+  line(shapes, [{ x: knot.x - 1, y: knot.y }, { x: knot.x - 2.6, y: knot.y + 5 }, { x: knot.x - 2, y: knot.y + 10 }], "#d8d3cc", 0.92, 0.75);
+  line(shapes, [{ x: knot.x + 1, y: knot.y }, { x: knot.x + 2.8, y: knot.y + 4.6 }, { x: knot.x + 3.4, y: knot.y + 9 }], "#d8d3cc", 0.92, 0.75);
+  glaze(shapes, worldOval({ x: knot.x, y: knot.y }, 1.6, 1.2, 0), "#e7e2db", 0.95);
+}
+
+function worldOval(c: Pt, rx: number, ry: number, rotDeg: number, n = 24): Pt[] {
   const t = (rotDeg * Math.PI) / 180;
   const co = Math.cos(t);
   const si = Math.sin(t);
@@ -994,7 +1241,7 @@ function placeHead(center: Pt, tiltDeg: number, r: number, local: Pt[]): Pt[] {
   });
 }
 
-function localOval(cx: number, cy: number, rx: number, ry: number, rot = 0, n = 12): Pt[] {
+function localOval(cx: number, cy: number, rx: number, ry: number, rot = 0, n = 20): Pt[] {
   const co = Math.cos(rot);
   const si = Math.sin(rot);
   const pts: Pt[] = [];
@@ -1005,6 +1252,60 @@ function localOval(cx: number, cy: number, rx: number, ry: number, rot = 0, n = 
     pts.push({ x: cx + lx * co - ly * si, y: cy + lx * si + ly * co });
   }
   return pts;
+}
+
+/** Almond eye opening in head-local units. */
+function almond(cx: number, cy: number, w: number, h: number, lower: number, lift = 0): Pt[] {
+  const top: Pt[] = [];
+  const bot: Pt[] = [];
+  const n = 12;
+  for (let i = 0; i <= n; i++) {
+    const u = i / n;
+    const x = cx - w + 2 * w * u;
+    const s = Math.pow(Math.sin(Math.PI * u), 0.85);
+    top.push({ x, y: cy + h * s + lift * (u - 0.5) });
+    bot.push({ x, y: cy - h * lower * s + lift * (u - 0.5) });
+  }
+  bot.reverse();
+  return [...top, ...bot.slice(1, -1)];
+}
+
+function almondTop(cx: number, cy: number, w: number, h: number, lift = 0, raise = 0): Pt[] {
+  const pts: Pt[] = [];
+  for (let i = 0; i <= 12; i++) {
+    const u = i / 12;
+    pts.push({
+      x: cx - w + 2 * w * u,
+      y: cy + (h + raise) * Math.pow(Math.sin(Math.PI * u), 0.85) + lift * (u - 0.5),
+    });
+  }
+  return pts;
+}
+
+/** Tapered shape between two curves: brows, lips. */
+function band(upper: Pt[], lower: Pt[]): Pt[] {
+  return [...upper, ...lower.slice().reverse()];
+}
+
+function polyLength(poly: Pt[]): number[] {
+  const acc = [0];
+  for (let i = 1; i < poly.length; i++) {
+    acc.push(acc[i - 1] + Math.hypot(poly[i].x - poly[i - 1].x, poly[i].y - poly[i - 1].y));
+  }
+  return acc;
+}
+
+function samplePoly(poly: Pt[], s: number): Pt {
+  const acc = polyLength(poly);
+  const total = acc[acc.length - 1] || 1;
+  const target = Math.min(1, Math.max(0, s)) * total;
+  for (let i = 1; i < poly.length; i++) {
+    if (acc[i] >= target) {
+      const seg = acc[i] - acc[i - 1] || 1;
+      return lerpPt(poly[i - 1], poly[i], (target - acc[i - 1]) / seg);
+    }
+  }
+  return poly[poly.length - 1];
 }
 
 const HAIR_SIDE: Pt[] = [
@@ -1020,6 +1321,16 @@ const HAIR_SIDE: Pt[] = [
   { x: -0.42, y: 0.2 },
   { x: -0.12, y: 0.52 },
   { x: 0.16, y: 0.5 },
+];
+
+/** Outer and inner edges of the side hair, front to nape, for strand flow. */
+const HAIR_SIDE_OUTER = HAIR_SIDE.slice(1, 8);
+const HAIR_SIDE_INNER: Pt[] = [
+  { x: 0.38, y: 0.6 },
+  { x: 0.16, y: 0.52 },
+  { x: -0.12, y: 0.54 },
+  { x: -0.42, y: 0.22 },
+  { x: -0.58, y: -0.2 },
 ];
 
 const HAIR_FRONT: Pt[] = [
@@ -1039,31 +1350,221 @@ const HAIR_FRONT: Pt[] = [
   { x: -0.5, y: 0.3 },
 ];
 
+const HAIR_FRONT_OUTER = HAIR_FRONT.slice(0, 9);
+const HAIR_FRONT_INNER: Pt[] = [
+  { x: -0.72, y: 0.14 },
+  { x: -0.5, y: 0.32 },
+  { x: -0.2, y: 0.18 },
+  { x: 0, y: 0.34 },
+  { x: 0.2, y: 0.18 },
+  { x: 0.5, y: 0.32 },
+  { x: 0.72, y: 0.14 },
+];
+
+function sideHairStrands(): { pts: Pt[]; light: boolean }[] {
+  const out: { pts: Pt[]; light: boolean }[] = [];
+  const count = 13;
+  for (let k = 0; k < count; k++) {
+    const f = 0.1 + (0.8 * k) / (count - 1);
+    const start = 0.02 + 0.05 * ((k * 7) % 3);
+    const end = 0.84 + 0.05 * ((k * 5) % 3);
+    const pts: Pt[] = [];
+    for (let i = 0; i <= 16; i++) {
+      const s = start + ((end - start) * i) / 16;
+      pts.push(lerpPt(samplePoly(HAIR_SIDE_INNER, s), samplePoly(HAIR_SIDE_OUTER, s), f));
+    }
+    out.push({ pts, light: k % 2 === 1 });
+  }
+  return out;
+}
+
+function frontHairStrands(): { pts: Pt[]; light: boolean }[] {
+  const out: { pts: Pt[]; light: boolean }[] = [];
+  const count = 17;
+  for (let k = 0; k < count; k++) {
+    const s = 0.03 + (0.94 * k) / (count - 1);
+    const a = samplePoly(HAIR_FRONT_INNER, s);
+    const start = { x: a.x, y: a.y + 0.05 };
+    const end = samplePoly(HAIR_FRONT_OUTER, 0.5 + (s - 0.5) * 0.62);
+    const mid = lerpPt(start, end, 0.5);
+    const bulge = { x: mid.x + mid.x * 0.12, y: mid.y + 0.04 };
+    const pts = [start, lerpPt(start, bulge, 0.55), bulge, lerpPt(bulge, end, 0.6), { x: end.x * 0.94, y: end.y - 0.04 }];
+    out.push({ pts, light: k % 2 === 1 });
+  }
+  return out;
+}
+
 function pushHead(shapes: Raw[], plane: "side" | "front", center: Pt, tilt: number, pal: Palette) {
   const r = LEN.head;
+  const H = (pts: Pt[]) => placeHead(center, tilt, r, pts);
+  const W = (f: number) => f * r;
+  const skinLit = lit(pal.skin);
+  const skinDark = dark(pal.skin);
+  const hairDark = mixHex(pal.hair, "#000000", 0.45);
+  const hairLit = mixHex(pal.hair, "#fff1e4", 0.3);
+  const lid = mixHex(pal.brow, "#000000", 0.25);
+  const lipDark = mixHex(pal.mouth, "#140c08", 0.45);
+  const lipLit = mixHex(pal.mouth, "#fff1e4", 0.3);
   const skull = plane === "side" ? PROFILE : FRONT_HEAD;
-  push(shapes, placeHead(center, tilt, r, skull), pal.skin, "radial");
-  const hair = plane === "side" ? HAIR_SIDE : HAIR_FRONT;
-  push(shapes, placeHead(center, tilt, r, hair), pal.hair, "radial");
+  push(shapes, H(skull), pal.skin, "radial");
+
   if (plane === "side") {
-    push(shapes, placeHead(center, tilt, r, localOval(-0.72, 0.02, 0.2, 0.28)), pal.skin);
-    push(shapes, placeHead(center, tilt, r, localOval(-0.7, 0.0, 0.09, 0.16)), pal.skinDeep, false);
-    push(shapes, placeHead(center, tilt, r, localOval(0.5, 0.26, 0.13, 0.09)), pal.sclera, false);
-    push(shapes, placeHead(center, tilt, r, localOval(0.54, 0.24, 0.065, 0.065)), pal.iris, false);
-    push(shapes, placeHead(center, tilt, r, localOval(0.555, 0.23, 0.032, 0.032)), pal.pupil, false);
-    push(shapes, placeHead(center, tilt, r, localOval(0.46, 0.42, 0.16, 0.035, -0.35)), pal.brow, false);
-    push(shapes, placeHead(center, tilt, r, localOval(0.66, -0.3, 0.1, 0.038)), pal.mouth, false);
-  } else {
-    for (const sx of [-1, 1]) {
-      push(shapes, placeHead(center, tilt, r, localOval(0.9 * sx, -0.08, 0.08, 0.14)), pal.skinDeep, false);
-      push(shapes, placeHead(center, tilt, r, localOval(0.32 * sx, 0.08, 0.13, 0.1)), pal.sclera, false);
-      push(shapes, placeHead(center, tilt, r, localOval(0.32 * sx, 0.06, 0.062, 0.062)), pal.iris, false);
-      push(shapes, placeHead(center, tilt, r, localOval(0.33 * sx, 0.05, 0.03, 0.03)), pal.pupil, false);
-      push(shapes, placeHead(center, tilt, r, localOval(0.32 * sx, 0.26, 0.15, 0.038)), pal.brow, false);
+    glaze(shapes, H(localOval(0.3, -0.04, 0.2, 0.13, -0.2)), skinLit, 0.24);
+    glaze(
+      shapes,
+      H(band(
+        [{ x: -0.36, y: -0.5 }, { x: -0.06, y: -0.7 }, { x: 0.22, y: -0.72 }, { x: 0.38, y: -0.66 }],
+        [{ x: -0.3, y: -0.64 }, { x: -0.02, y: -0.88 }, { x: 0.18, y: -0.86 }, { x: 0.36, y: -0.7 }]
+      )),
+      skinDark,
+      0.16
+    );
+    line(shapes, H([{ x: 0.62, y: 0.14 }, { x: 0.71, y: 0.04 }, { x: 0.75, y: -0.02 }]), skinLit, 0.4, W(0.035));
+    push(shapes, H(HAIR_SIDE), pal.hair, "radial");
+    for (const strand of sideHairStrands()) {
+      line(shapes, H(strand.pts), strand.light ? hairLit : hairDark, strand.light ? 0.42 : 0.55, W(strand.light ? 0.016 : 0.022));
     }
-    push(shapes, placeHead(center, tilt, r, localOval(0, -0.16, 0.055, 0.09)), pal.skinDeep, false);
-    push(shapes, placeHead(center, tilt, r, localOval(0, -0.48, 0.15, 0.042)), pal.mouth, false);
+
+    push(shapes, H(localOval(-0.72, 0.02, 0.2, 0.28)), pal.skin);
+    line(shapes, H([{ x: -0.6, y: 0.2 }, { x: -0.72, y: 0.26 }, { x: -0.86, y: 0.16 }, { x: -0.88, y: -0.04 }, { x: -0.8, y: -0.2 }]), skinDark, 0.5, W(0.035));
+    glaze(shapes, H(localOval(-0.7, 0.0, 0.09, 0.16)), pal.skinDeep, 0.85);
+    line(shapes, H([{ x: -0.74, y: 0.12 }, { x: -0.78, y: 0.0 }, { x: -0.72, y: -0.1 }]), skinLit, 0.45, W(0.022));
+    glaze(shapes, H(localOval(-0.68, -0.21, 0.07, 0.06)), skinLit, 0.3);
+
+    line(shapes, H(almondTop(0.5, 0.26, 0.13, 0.09, 0.02, 0.07)), skinDark, 0.32, W(0.022));
+    push(shapes, H(almond(0.5, 0.26, 0.13, 0.09, 0.7, 0.02)), pal.sclera, false);
+    push(shapes, H(localOval(0.545, 0.25, 0.062, 0.066)), pal.iris, false);
+    glaze(shapes, H(localOval(0.545, 0.25, 0.04, 0.043)), mixHex(pal.iris, "#c08a5a", 0.35), 0.6);
+    push(shapes, H(localOval(0.555, 0.245, 0.03, 0.032)), pal.pupil, false);
+    glaze(shapes, H(localOval(0.57, 0.27, 0.014, 0.014)), "#ffffff", 0.92);
+    line(shapes, H(almondTop(0.5, 0.26, 0.13, 0.09, 0.02, 0.006)), lid, 0.95, W(0.032));
+    line(shapes, H([{ x: 0.4, y: 0.21 }, { x: 0.5, y: 0.195 }, { x: 0.6, y: 0.21 }]), skinDark, 0.38, W(0.016));
+    line(shapes, H([{ x: 0.6, y: 0.33 }, { x: 0.66, y: 0.37 }]), lid, 0.85, W(0.014));
+    line(shapes, H([{ x: 0.62, y: 0.31 }, { x: 0.69, y: 0.33 }]), lid, 0.85, W(0.014));
+    line(shapes, H([{ x: 0.63, y: 0.28 }, { x: 0.7, y: 0.28 }]), lid, 0.8, W(0.012));
+    push(
+      shapes,
+      H(band(
+        [{ x: 0.3, y: 0.42 }, { x: 0.4, y: 0.47 }, { x: 0.52, y: 0.49 }, { x: 0.64, y: 0.45 }],
+        [{ x: 0.31, y: 0.385 }, { x: 0.41, y: 0.425 }, { x: 0.52, y: 0.44 }, { x: 0.64, y: 0.43 }]
+      )),
+      pal.brow,
+      false
+    );
+    line(shapes, H([{ x: 0.36, y: 0.43 }, { x: 0.44, y: 0.47 }]), mixHex(pal.brow, "#fff1e4", 0.2), 0.45, W(0.01));
+    glaze(shapes, H(localOval(0.68, -0.07, 0.075, 0.055)), skinDark, 0.26);
+    line(shapes, H([{ x: 0.6, y: -0.08 }, { x: 0.66, y: -0.115 }, { x: 0.71, y: -0.1 }]), pal.skinDeep, 0.6, W(0.024));
+    glaze(shapes, H(localOval(0.75, -0.01, 0.035, 0.026)), skinLit, 0.45);
+    line(shapes, H([{ x: 0.57, y: -0.05 }, { x: 0.55, y: -0.2 }, { x: 0.6, y: -0.34 }]), skinDark, 0.24, W(0.02));
+    push(
+      shapes,
+      H(band(
+        [{ x: 0.6, y: -0.285 }, { x: 0.67, y: -0.25 }, { x: 0.72, y: -0.245 }, { x: 0.765, y: -0.275 }],
+        [{ x: 0.6, y: -0.3 }, { x: 0.68, y: -0.305 }, { x: 0.76, y: -0.3 }]
+      )),
+      pal.mouth,
+      false
+    );
+    push(
+      shapes,
+      H(band(
+        [{ x: 0.61, y: -0.305 }, { x: 0.68, y: -0.31 }, { x: 0.75, y: -0.305 }],
+        [{ x: 0.62, y: -0.33 }, { x: 0.67, y: -0.37 }, { x: 0.73, y: -0.36 }]
+      )),
+      lipLit,
+      false
+    );
+    line(shapes, H([{ x: 0.58, y: -0.3 }, { x: 0.68, y: -0.306 }, { x: 0.765, y: -0.3 }]), lipDark, 0.85, W(0.016));
+    line(shapes, H([{ x: 0.63, y: -0.41 }, { x: 0.69, y: -0.43 }]), skinDark, 0.3, W(0.02));
+    return;
   }
+
+  for (const sx of [-1, 1]) {
+    glaze(shapes, H(localOval(0.42 * sx, -0.18, 0.2, 0.12)), skinLit, 0.22);
+  }
+  glaze(
+    shapes,
+    H(band(
+      [{ x: -0.55, y: -0.6 }, { x: -0.3, y: -0.9 }, { x: 0, y: -0.98 }, { x: 0.3, y: -0.9 }, { x: 0.55, y: -0.6 }],
+      [{ x: -0.48, y: -0.56 }, { x: -0.25, y: -0.8 }, { x: 0, y: -0.86 }, { x: 0.25, y: -0.8 }, { x: 0.48, y: -0.56 }]
+    )),
+    skinDark,
+    0.15
+  );
+  glaze(shapes, H(localOval(0, -0.8, 0.14, 0.07)), skinLit, 0.28);
+  push(shapes, H(HAIR_FRONT), pal.hair, "radial");
+  for (const strand of frontHairStrands()) {
+    line(shapes, H(strand.pts), strand.light ? hairLit : hairDark, strand.light ? 0.42 : 0.55, W(strand.light ? 0.016 : 0.022));
+  }
+  for (const sx of [-1, 1]) {
+    glaze(shapes, H(localOval(0.9 * sx, -0.08, 0.08, 0.14)), pal.skinDeep, 0.55);
+    line(shapes, H([{ x: 0.93 * sx, y: 0.06 }, { x: 0.99 * sx, y: -0.06 }, { x: 0.95 * sx, y: -0.22 }]), skinDark, 0.45, W(0.025));
+    const ex = 0.32 * sx;
+    const lift = 0.02 * sx;
+    line(shapes, H(almondTop(ex, 0.08, 0.15, 0.085, lift, 0.075)), skinDark, 0.3, W(0.022));
+    push(shapes, H(almond(ex, 0.08, 0.15, 0.085, 0.75, lift)), pal.sclera, false);
+    push(shapes, H(localOval(ex, 0.07, 0.062, 0.066)), pal.iris, false);
+    glaze(shapes, H(localOval(ex, 0.07, 0.04, 0.043)), mixHex(pal.iris, "#c08a5a", 0.35), 0.6);
+    push(shapes, H(localOval(ex, 0.065, 0.03, 0.032)), pal.pupil, false);
+    glaze(shapes, H(localOval(ex - 0.02, 0.09, 0.015, 0.015)), "#ffffff", 0.92);
+    line(shapes, H(almondTop(ex, 0.08, 0.15, 0.085, lift, 0.006)), lid, 0.95, W(0.032));
+    line(shapes, H([{ x: ex - 0.12, y: 0.03 }, { x: ex, y: 0.005 }, { x: ex + 0.12, y: 0.03 }]), skinDark, 0.36, W(0.016));
+    const outer = ex + 0.15 * sx;
+    line(shapes, H([{ x: outer, y: 0.1 }, { x: outer + 0.05 * sx, y: 0.14 }]), lid, 0.85, W(0.014));
+    line(shapes, H([{ x: outer - 0.04 * sx, y: 0.14 }, { x: outer + 0.01 * sx, y: 0.19 }]), lid, 0.8, W(0.012));
+    push(
+      shapes,
+      H(band(
+        [{ x: 0.13 * sx, y: 0.25 }, { x: 0.26 * sx, y: 0.31 }, { x: 0.4 * sx, y: 0.32 }, { x: 0.5 * sx, y: 0.28 }],
+        [{ x: 0.13 * sx, y: 0.215 }, { x: 0.26 * sx, y: 0.265 }, { x: 0.4 * sx, y: 0.28 }, { x: 0.5 * sx, y: 0.265 }]
+      )),
+      pal.brow,
+      false
+    );
+    line(shapes, H([{ x: 0.1 * sx, y: 0.12 }, { x: 0.105 * sx, y: -0.04 }, { x: 0.11 * sx, y: -0.12 }]), skinDark, 0.22, W(0.022));
+    glaze(shapes, H(localOval(0.07 * sx, -0.2, 0.035, 0.022)), pal.skinDeep, 0.75);
+    line(shapes, H([{ x: 0.06 * sx, y: -0.13 }, { x: 0.12 * sx, y: -0.16 }, { x: 0.11 * sx, y: -0.21 }]), skinDark, 0.4, W(0.018));
+    line(shapes, H([{ x: 0.2 * sx, y: -0.24 }, { x: 0.24 * sx, y: -0.36 }, { x: 0.22 * sx, y: -0.46 }]), skinDark, 0.18, W(0.02));
+  }
+  glaze(shapes, H(localOval(0, -0.12, 0.05, 0.04)), skinLit, 0.45);
+  line(shapes, H([{ x: -0.025, y: -0.27 }, { x: -0.03, y: -0.38 }]), skinDark, 0.24, W(0.014));
+  line(shapes, H([{ x: 0.025, y: -0.27 }, { x: 0.03, y: -0.38 }]), skinDark, 0.24, W(0.014));
+  push(
+    shapes,
+    H(band(
+      [{ x: -0.17, y: -0.47 }, { x: -0.07, y: -0.42 }, { x: 0, y: -0.435 }, { x: 0.07, y: -0.42 }, { x: 0.17, y: -0.47 }],
+      [{ x: -0.17, y: -0.475 }, { x: 0, y: -0.48 }, { x: 0.17, y: -0.475 }]
+    )),
+    pal.mouth,
+    false
+  );
+  push(
+    shapes,
+    H(band(
+      [{ x: -0.15, y: -0.48 }, { x: 0, y: -0.485 }, { x: 0.15, y: -0.48 }],
+      [{ x: -0.14, y: -0.5 }, { x: -0.07, y: -0.555 }, { x: 0, y: -0.565 }, { x: 0.07, y: -0.555 }, { x: 0.14, y: -0.5 }]
+    )),
+    lipLit,
+    false
+  );
+  line(shapes, H([{ x: -0.19, y: -0.465 }, { x: 0, y: -0.483 }, { x: 0.19, y: -0.465 }]), lipDark, 0.85, W(0.016));
+  glaze(shapes, H(localOval(0, -0.52, 0.05, 0.015)), "#ffffff", 0.2);
+  line(shapes, H([{ x: -0.07, y: -0.64 }, { x: 0, y: -0.66 }, { x: 0.07, y: -0.64 }]), skinDark, 0.3, W(0.02));
+}
+
+function neckDetail(shapes: Raw[], neck: Seg, skin: string, front: boolean) {
+  const L = lit(skin);
+  const D = dark(skin);
+  if (front) {
+    glaze(shapes, segLens(neck, 0.6, 1.0, 0, 0.8), D, 0.3);
+    line(shapes, segPts(neck, [[0.92, 0.55], [0.5, 0.32], [0.06, 0.1]]), D, 0.26, 0.8);
+    line(shapes, segPts(neck, [[0.92, -0.55], [0.5, -0.32], [0.06, -0.1]]), D, 0.26, 0.8);
+    glaze(shapes, segLens(neck, 0.15, 0.55, 0, 0.18), L, 0.22);
+    return;
+  }
+  glaze(shapes, segLens(neck, 0.55, 1.0, 0.35, 0.55), D, 0.32);
+  line(shapes, segPts(neck, [[0.95, -0.5], [0.5, 0.1], [0.06, 0.6]]), D, 0.26, 0.8);
+  glaze(shapes, segLens(neck, 0.0, 0.5, -0.5, 0.34), L, 0.24);
 }
 
 function footFrame(ankle: Pt, deg: number) {
@@ -1080,6 +1581,10 @@ function footFrame(ankle: Pt, deg: number) {
   const ball = add(ankle, d, 16);
   const toe = add(ankle, d, 30);
   return { d, n, heel, mid, ball, toe };
+}
+
+function at(p: Pt, d: Pt, along: number, n: Pt, down: number): Pt {
+  return { x: p.x + d.x * along + n.x * down, y: p.y + d.y * along + n.y * down };
 }
 
 function footPoly(ankle: Pt, deg: number): Pt[] {
@@ -1121,7 +1626,29 @@ function shoeStripe(ankle: Pt, deg: number): Pt[] {
   ];
 }
 
-type Chain = { knee: Pt; end: Pt; toe: Pt; parts: Pt[][] };
+/** Trainer: upper, heel counter, toe cap, midsole, outsole tread, swoosh stripe, laces. */
+function pushShoe(shapes: Raw[], ankle: Pt, deg: number, upper: string, pal: Palette) {
+  const { d, n, heel, ball, toe } = footFrame(ankle, deg);
+  push(shapes, footPoly(ankle, deg), upper);
+  glaze(shapes, worldOval(at(heel, d, 2.5, n, 6), 4.6, 5.6, deg), dark(upper), 0.22);
+  line(shapes, [at(ball, d, 3, n, -1.5), at(ball, d, 8, n, 3), at(ball, d, 7, n, 9)], dark(upper), 0.35, 0.7);
+  line(shapes, [at(heel, d, 1, n, 0.5), at(ankle, d, -2, n, -3.2), at(ankle, d, 3, n, -4)], dark(upper), 0.4, 0.75);
+  push(shapes, solePoly(ankle, deg), pal.sole, false);
+  line(shapes, [at(heel, d, 0.5, n, 8.6), at(ball, d, 0, n, 8.6), at(toe, d, -2, n, 6)], "#f4f1ec", 0.85, 1.3);
+  for (let i = 0; i < 6; i++) {
+    const p = add(heel, d, 3 + i * 5.2);
+    line(shapes, [at(p, d, 0, n, 11.5), at(p, d, 1.6, n, 13.6)], "#4a4440", 0.8, 0.55);
+  }
+  push(shapes, shoeStripe(ankle, deg), pal.stripe, false);
+  line(shapes, [at(ankle, d, 3, n, 3), at(ankle, d, 11, n, 9.5)], mixHex(pal.stripe, "#fff1e4", 0.3), 0.6, 0.45);
+  for (let i = 0; i < 4; i++) {
+    const p = add(ankle, d, 1 + i * 3.8);
+    line(shapes, [at(p, d, -0.6, n, -3.6), at(p, d, 1.6, n, -1.2)], "#8f8981", 0.95, 0.9);
+    glaze(shapes, worldOval(at(p, d, -0.8, n, -0.8), 0.7, 0.7, 0, 10), "#5d5751", 0.8);
+  }
+}
+
+type Chain = { knee: Pt; end: Pt; toe: Pt; parts: Pt[][]; segs: Seg[] };
 
 function limbChain(
   origin: Pt,
@@ -1136,75 +1663,164 @@ function limbChain(
   const dLower = dir(foreDeg);
   const knee = add(origin, dUpper, upperLen);
   const end = add(knee, dLower, lowerLen);
-  const parts: Pt[][] = [];
   if (kind === "arm") {
     const root = add(origin, dUpper, -4);
     const elbow = add(knee, dLower, -8);
-    parts.push(solidLimb(root, knee, ARM_R));
-    parts.push(solidLimb(elbow, end, FORE_R));
     const hand = add(end, dLower, LEN.hand);
     const wrist = add(end, dLower, -4);
-    parts.push(solidLimb(wrist, hand, [7, 7.6, 5.6]));
-    return { knee, end, toe: hand, parts };
+    const segs: Seg[] = [
+      { a: root, b: knee, r: ARM_R },
+      { a: elbow, b: end, r: FORE_R },
+      { a: wrist, b: hand, r: HAND_R },
+    ];
+    return { knee, end, toe: hand, parts: segs.map((s) => solidLimb(s.a, s.b, s.r)), segs };
   }
   const root = add(origin, dUpper, -8);
   const kneeIn = add(knee, dLower, -8);
-  parts.push(solidLimb(root, knee, THIGH_R));
-  parts.push(solidLimb(kneeIn, end, SHIN_R));
+  const segs: Seg[] = [
+    { a: root, b: knee, r: THIGH_R },
+    { a: kneeIn, b: end, r: SHIN_R },
+  ];
   const fd = footDeg ?? autoFoot(foreDeg);
   const toe = add(end, dir(fd), LEN.foot);
-  parts.push(footPoly(end, fd));
-  return { knee, end, toe, parts };
+  return { knee, end, toe, parts: [...segs.map((s) => solidLimb(s.a, s.b, s.r)), footPoly(end, fd)], segs };
 }
 
 function limbSegment(a: Pt, b: Pt, radii: number[], t0: number, t1: number): Pt[] {
-  const dx = b.x - a.x;
-  const dy = b.y - a.y;
-  const len = Math.hypot(dx, dy) || 1;
-  const n = radii.length - 1;
-  const rAt = (t: number) => {
-    const x = Math.min(1, Math.max(0, t)) * n;
-    const i = Math.min(n - 1, Math.floor(x));
-    const f = x - i;
-    return radii[i] * (1 - f) + radii[i + 1] * f;
-  };
-  const ux = dx / len;
-  const uy = dy / len;
-  const px = -uy;
-  const py = ux;
-  const steps = 8;
+  const seg: Seg = { a, b, r: radii };
+  const steps = 16;
   const pts: Pt[] = [];
-  for (let i = 0; i <= steps; i++) {
-    const t = t0 + ((t1 - t0) * i) / steps;
-    const r = rAt(t);
-    pts.push({ x: a.x + dx * t + px * r, y: a.y + dy * t + py * r });
-  }
-  for (let i = steps; i >= 0; i--) {
-    const t = t0 + ((t1 - t0) * i) / steps;
-    const r = rAt(t);
-    pts.push({ x: a.x + dx * t - px * r, y: a.y + dy * t - py * r });
-  }
+  for (let i = 0; i <= steps; i++) pts.push(segAt(seg, t0 + ((t1 - t0) * i) / steps, 1));
+  for (let i = steps; i >= 0; i--) pts.push(segAt(seg, t0 + ((t1 - t0) * i) / steps, -1));
   return pts;
 }
 
-function pushLeg(shapes: Raw[], leg: Chain, footDeg: number, skin: string, shoe: string, pal: Palette) {
-  push(shapes, leg.parts[0], skin);
-  push(shapes, leg.parts[1], skin);
-  push(shapes, leg.parts[2], shoe);
-  push(shapes, solePoly(leg.end, footDeg), pal.sole, false);
-  push(shapes, shoeStripe(leg.end, footDeg), pal.stripe, false);
+/**
+ * Muscle definition. ant = which side of the limb faces forward (-1 or 1 in side view,
+ * 0 when the limb faces the camera); med = inner side of the limb in the front view.
+ */
+function upperArmMuscles(shapes: Raw[], seg: Seg, skin: string, ant: number, med: number) {
+  const L = lit(skin);
+  const D = dark(skin);
+  glaze(shapes, segLens(seg, 0.02, 0.44, 0, 0.74), L, 0.34);
+  line(shapes, segPts(seg, [[0.3, -0.9], [0.45, 0], [0.3, 0.9]]), D, 0.26, 0.9);
+  if (ant !== 0) {
+    glaze(shapes, segLens(seg, 0.4, 0.9, ant * 0.4, 0.42), L, 0.4);
+    glaze(shapes, segLens(seg, 0.34, 0.94, -ant * 0.52, 0.34), D, 0.3);
+    line(shapes, segPts(seg, [[0.46, -ant * 0.06], [0.66, -ant * 0.1], [0.86, -ant * 0.08]]), D, 0.26, 0.8);
+  } else {
+    glaze(shapes, segLens(seg, 0.4, 0.9, -med * 0.1, 0.4), L, 0.38);
+    glaze(shapes, segLens(seg, 0.3, 0.95, 0.8, 0.18), D, 0.3);
+    glaze(shapes, segLens(seg, 0.3, 0.95, -0.8, 0.18), D, 0.3);
+  }
 }
 
-function pushShortsLeg(shapes: Raw[], origin: Pt, thighDeg: number, fill: string) {
+function forearmMuscles(shapes: Raw[], seg: Seg, skin: string, ant: number, med: number) {
+  const L = lit(skin);
+  const D = dark(skin);
+  const lead = ant !== 0 ? ant : -med;
+  glaze(shapes, segLens(seg, 0.06, 0.6, lead * 0.28, 0.5), L, 0.36);
+  glaze(shapes, segLens(seg, 0.12, 0.9, -lead * 0.56, 0.3), D, 0.28);
+  line(shapes, segPts(seg, [[0.2, -lead * 0.05], [0.5, lead * 0.1], [0.85, lead * 0.2]]), D, 0.22, 0.7);
+  glaze(shapes, segLens(seg, 0.86, 1.0, 0, 0.5), D, 0.16);
+}
+
+function handDetail(shapes: Raw[], seg: Seg, skin: string) {
+  const L = lit(skin);
+  const D = dark(skin);
+  glaze(shapes, segLens(seg, 0.1, 0.55, 0, 0.5), L, 0.24);
+  for (const off of [-0.45, 0, 0.45]) {
+    line(shapes, segPts(seg, [[0.5, off], [0.72, off * 0.95], [0.94, off * 0.85]]), D, 0.32, 0.45);
+  }
+  glaze(shapes, segLens(seg, 0.38, 0.5, 0, 0.82), D, 0.12);
+}
+
+function thighMuscles(shapes: Raw[], seg: Seg, skin: string, ant: number, med: number) {
+  const L = lit(skin);
+  const D = dark(skin);
+  const angle = segAngle(seg);
+  if (ant !== 0) {
+    glaze(shapes, segLens(seg, 0.42, 0.92, ant * 0.36, 0.44), L, 0.38);
+    glaze(shapes, segLens(seg, 0.7, 0.97, ant * 0.6, 0.26), L, 0.3);
+    line(shapes, segPts(seg, [[0.46, -ant * 0.02], [0.68, ant * 0.06], [0.88, ant * 0.12]]), D, 0.26, 0.85);
+    glaze(shapes, segLens(seg, 0.4, 0.96, -ant * 0.6, 0.32), D, 0.3);
+    glaze(shapes, worldOval(segAt(seg, 0.985, ant * 0.62), 6, 4.4, angle), L, 0.34);
+    return;
+  }
+  glaze(shapes, segLens(seg, 0.42, 0.92, -med * 0.05, 0.42), L, 0.36);
+  glaze(shapes, segLens(seg, 0.68, 0.96, med * 0.5, 0.3), L, 0.34);
+  glaze(shapes, segLens(seg, 0.4, 0.96, -med * 0.72, 0.22), D, 0.28);
+  line(shapes, segPts(seg, [[0.48, -med * 0.3], [0.7, -med * 0.26], [0.9, -med * 0.2]]), D, 0.22, 0.8);
+  glaze(shapes, worldOval(segAt(seg, 0.98, 0), 6, 5, angle), L, 0.34);
+}
+
+function shinMuscles(shapes: Raw[], seg: Seg, skin: string, ant: number, med: number) {
+  const L = lit(skin);
+  const D = dark(skin);
+  if (ant !== 0) {
+    glaze(shapes, segLens(seg, 0.1, 0.62, -ant * 0.44, 0.46), L, 0.36);
+    line(shapes, segPts(seg, [[0.22, -ant * 0.15], [0.44, -ant * 0.28], [0.66, -ant * 0.38]]), D, 0.24, 0.8);
+    glaze(shapes, segLens(seg, 0.66, 0.98, -ant * 0.55, 0.24), D, 0.3);
+    glaze(shapes, segLens(seg, 0.08, 0.86, ant * 0.66, 0.16), L, 0.3);
+    glaze(shapes, segLens(seg, 0.0, 0.16, ant * 0.2, 0.5), D, 0.2);
+    return;
+  }
+  glaze(shapes, segLens(seg, 0.1, 0.6, med * 0.5, 0.36), L, 0.32);
+  glaze(shapes, segLens(seg, 0.12, 0.62, -med * 0.6, 0.28), L, 0.24);
+  glaze(shapes, segLens(seg, 0.08, 0.88, -med * 0.05, 0.16), L, 0.3);
+  line(shapes, segPts(seg, [[0.12, med * 0.18], [0.5, med * 0.14], [0.86, med * 0.1]]), D, 0.2, 0.7);
+}
+
+function pushThigh(shapes: Raw[], leg: Chain, skin: string, ant: number, med: number) {
+  push(shapes, leg.parts[0], skin);
+  thighMuscles(shapes, leg.segs[0], skin, ant, med);
+}
+
+function pushShin(shapes: Raw[], leg: Chain, skin: string, ant: number, med: number) {
+  push(shapes, leg.parts[1], skin);
+  shinMuscles(shapes, leg.segs[1], skin, ant, med);
+}
+
+function pushLeg(
+  shapes: Raw[],
+  leg: Chain,
+  footDeg: number,
+  skin: string,
+  shoe: string,
+  pal: Palette,
+  ant: number,
+  med: number
+) {
+  pushThigh(shapes, leg, skin, ant, med);
+  pushShin(shapes, leg, skin, ant, med);
+  pushShoe(shapes, leg.end, footDeg, shoe, pal);
+}
+
+function pushShortsLeg(shapes: Raw[], origin: Pt, thighDeg: number, fill: string, ant: number, med: number) {
   const d = dir(thighDeg);
   const root = add(origin, d, -18);
   const knee = add(origin, d, LEN.thigh);
   const radii = THIGH_R.map((r, i) => r * (i === 0 ? 1.7 : i === 1 ? 1.2 : 1.04));
   push(shapes, limbSegment(root, knee, radii, 0, 0.5), fill);
+  const seg: Seg = { a: root, b: knee, r: radii };
+  line(shapes, segPts(seg, [[0.488, -0.97], [0.5, 0], [0.488, 0.97]]), "#050505", 0.7, 1.1);
+  line(shapes, segPts(seg, [[0.455, -0.95], [0.468, 0], [0.455, 0.95]]), "#3a3a3a", 0.7, 0.4);
+  const lead = ant !== 0 ? ant : med;
+  line(shapes, segPts(seg, [[0.12, lead * 0.7], [0.27, lead * 0.35], [0.43, lead * 0.1]]), "#000000", 0.5, 0.9);
+  line(shapes, segPts(seg, [[0.14, lead * 0.55], [0.29, lead * 0.2], [0.44, -lead * 0.05]]), "#3d3d3d", 0.5, 0.6);
+  line(shapes, segPts(seg, [[0.3, -lead * 0.2], [0.44, -lead * 0.45]]), "#000000", 0.4, 0.8);
+  if (ant !== 0) {
+    line(shapes, segPts(seg, [[0.04, -ant * 0.05], [0.26, -ant * 0.08], [0.49, -ant * 0.1]]), "#2e2e2e", 0.8, 0.6);
+  }
 }
 
-function pushArm(shapes: Raw[], arm: Chain, skin: string) {
-  for (const part of arm.parts) push(shapes, part, skin);
+function pushArm(shapes: Raw[], arm: Chain, skin: string, ant: number, med: number) {
+  push(shapes, arm.parts[0], skin);
+  upperArmMuscles(shapes, arm.segs[0], skin, ant, med);
+  push(shapes, arm.parts[1], skin);
+  forearmMuscles(shapes, arm.segs[1], skin, ant, med);
+  push(shapes, arm.parts[2], skin);
+  handDetail(shapes, arm.segs[2], skin);
 }
 
 function autoFoot(shin: number): number {
@@ -1215,12 +1831,40 @@ function autoFoot(shin: number): number {
   return 86;
 }
 
-function path(pts: Pt[]): string {
-  return (
-    pts
-      .map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(1)} ${p.y.toFixed(1)}`)
-      .join("") + "Z"
-  );
+function num(v: number): string {
+  return (Math.round(v * 100) / 100).toString();
+}
+
+function linePath(pts: Pt[], closed: boolean): string {
+  return pts.map((p, i) => `${i === 0 ? "M" : "L"}${num(p.x)} ${num(p.y)}`).join("") + (closed ? "Z" : "");
+}
+
+/**
+ * Smooth outline: a Catmull-Rom spline through every point, written as cubic Béziers,
+ * so contours stay round at any zoom instead of showing polygon facets.
+ */
+function curvePath(pts: Pt[], closed: boolean): string {
+  const n = pts.length;
+  if (n < 3) return linePath(pts, closed);
+  const get = (i: number) => (closed ? pts[((i % n) + n) % n] : pts[Math.max(0, Math.min(n - 1, i))]);
+  let d = `M${num(pts[0].x)} ${num(pts[0].y)}`;
+  const segs = closed ? n : n - 1;
+  for (let i = 0; i < segs; i++) {
+    const p0 = get(i - 1);
+    const p1 = get(i);
+    const p2 = get(i + 1);
+    const p3 = get(i + 2);
+    const span = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+    const clampHandle = (vx: number, vy: number) => {
+      const l = Math.hypot(vx, vy);
+      const max = span * 0.5;
+      return l > max && l > 0 ? { x: (vx / l) * max, y: (vy / l) * max } : { x: vx, y: vy };
+    };
+    const t1 = clampHandle((p2.x - p0.x) / 6, (p2.y - p0.y) / 6);
+    const t2 = clampHandle((p3.x - p1.x) / 6, (p3.y - p1.y) / 6);
+    d += `C${num(p1.x + t1.x)} ${num(p1.y + t1.y)} ${num(p2.x - t2.x)} ${num(p2.y - t2.y)} ${num(p2.x)} ${num(p2.y)}`;
+  }
+  return d + (closed ? "Z" : "");
 }
 
 function fit(shapes: Raw[]): Shape[] {
@@ -1244,27 +1888,35 @@ function fit(shapes: Raw[]): Shape[] {
   const s = Math.min((vbW - pad * 2) / bw, (vbH - pad * 2) / bh);
   const ox = (vbW - bw * s) / 2 - minX * s;
   const oy = (vbH - bh * s) / 2 - minY * s;
-  return shapes.map((shape) => ({
-    fill: shape.fill,
-    shade: shape.shade,
-    d: path(
-      shape.pts.map((p) => ({
-        x: p.x * s + ox,
-        y: p.y * s + oy,
-      }))
-    ),
-  }));
+  return shapes.map((shape) => {
+    const pts = shape.pts.map((p) => ({ x: p.x * s + ox, y: p.y * s + oy }));
+    const open = Boolean(shape.stroke);
+    const out: Shape = {
+      fill: shape.fill,
+      shade: shape.shade,
+      d: shape.sharp ? linePath(pts, true) : curvePath(pts, !open),
+    };
+    if (shape.stroke) {
+      out.stroke = shape.stroke;
+      out.width = Math.round((shape.width ?? 1) * s * 1000) / 1000;
+    }
+    if (shape.opacity !== undefined && shape.opacity < 1) out.opacity = shape.opacity;
+    return out;
+  });
 }
 
-function dumbbell(wrist: Pt, foreDeg: number): Pt[][] {
+function dumbbell(wrist: Pt, foreDeg: number): { bar: Pt[]; plates: Pt[][]; caps: Pt[][] } {
   const along = dir(foreDeg);
   const px = -along.y;
   const py = along.x;
   const grip = add(wrist, along, 12);
   const a = add(grip, { x: px, y: py }, 18);
   const b = add(grip, { x: px, y: py }, -18);
-  const bar = solidLimb(a, b, [3.4, 3.4]);
-  return [bar, hex(a, 12), hex(b, 12)];
+  return {
+    bar: solidLimb(a, b, [3.4, 3.4]),
+    plates: [hex(a, 12), hex(b, 12)],
+    caps: [worldOval(a, 4.2, 4.2, 0), worldOval(b, 4.2, 4.2, 0)],
+  };
 }
 
 function boundsOf(parts: Pt[][]): { minX: number; maxX: number; maxY: number } {
@@ -1304,7 +1956,8 @@ function buildSide(spec: SideSpec, pal: Palette): Raw[] {
   const neckBase = add(shoulder, spine, -8);
   const neckTop = add(shoulder, spine, LEN.neck);
   const headCenter = add(shoulder, spine, LEN.neck + LEN.head * 0.55);
-  const neck = solidLimb(neckBase, neckTop, [13, 12, 11, 10]);
+  const neckSeg: Seg = { a: neckBase, b: neckTop, r: [13, 12, 11, 10] };
+  const neck = solidLimb(neckSeg.a, neckSeg.b, neckSeg.r);
 
   const shapes: Raw[] = [];
   const { minX, maxX, maxY } = boundsOf([
@@ -1317,49 +1970,55 @@ function buildSide(spec: SideSpec, pal: Palette): Raw[] {
   if (spec.prop === "dip") {
     const top = Math.max(nearArm.end.y, farArm.end.y);
     const hx = (nearArm.end.x + farArm.end.x) / 2;
-    push(shapes, rect(hx - 118, top, 136, 48), pal.prop, false);
+    pushFlat(shapes, rect(hx - 118, top, 136, 48), pal.prop);
   } else if (spec.prop === "skull") {
     const mid = { x: (hip.x + shoulder.x) / 2, y: (hip.y + shoulder.y) / 2 };
     const backY = mid.y - nrm.y * 22;
     const left = Math.min(headCenter.x, hip.x, nearLeg.knee.x) - 22;
     const right = Math.max(headCenter.x, hip.x, nearLeg.knee.x) + 28;
-    push(shapes, rect(left, backY, right - left, 32), pal.prop, false);
+    pushFlat(shapes, rect(left, backY, right - left, 32), pal.prop);
   } else if (spec.prop === "ham") {
     const top = nearLeg.toe.y;
     const ground = farLeg.toe.y;
     const h = Math.max(20, ground - top);
-    push(shapes, rect(nearLeg.end.x - 22, top, 56, h), pal.prop, false);
+    pushFlat(shapes, rect(nearLeg.end.x - 22, top, 56, h), pal.prop);
   } else if (spec.prop === "wall") {
     const x = Math.max(nearArm.toe.x, farArm.toe.x) + 8;
     const top = Math.min(nearArm.toe.y, farArm.toe.y) - 40;
-    push(shapes, rect(x, top, 16, maxY - top + 10), pal.prop, false);
+    pushFlat(shapes, rect(x, top, 16, maxY - top + 10), pal.prop);
   }
 
-  push(shapes, rect(minX - 10, maxY + 2, maxX - minX + 20, 8), pal.ground, false);
+  pushFlat(shapes, rect(minX - 10, maxY + 2, maxX - minX + 20, 8), pal.ground);
 
-  pushLeg(shapes, farLeg, farFoot, pal.skinFar, pal.shoeFar, pal);
-  pushShortsLeg(shapes, farHip, spec.thighFar, pal.shortsFar);
-  pushArm(shapes, farArm, pal.skinFar);
+  const ANT = -1;
+  pushLeg(shapes, farLeg, farFoot, pal.skinFar, pal.shoeFar, pal, ANT, 0);
+  pushShortsLeg(shapes, farHip, spec.thighFar, pal.shortsFar, ANT, 0);
+  pushArm(shapes, farArm, pal.skinFar, ANT, 0);
 
   push(shapes, sideTorso(hip, shoulder), pal.skin);
-  push(shapes, nearLeg.parts[0], pal.skin);
+  pushThigh(shapes, nearLeg, pal.skin, ANT, 0);
   push(shapes, sideTank(hip, shoulder), pal.tank);
   push(shapes, sideChest(hip, shoulder), pal.tankLite);
+  sideTankDetail(shapes, hip, shoulder, pal);
   push(shapes, sideShorts(hip, shoulder), pal.shorts);
+  sideShortsDetail(shapes, hip, shoulder);
   push(shapes, sideWaist(hip, shoulder), pal.waist, false);
-  pushShortsLeg(shapes, hip, spec.thigh, pal.shorts);
-  push(shapes, nearLeg.parts[1], pal.skin);
-  push(shapes, nearLeg.parts[2], pal.shoe);
-  push(shapes, solePoly(nearLeg.end, nearFoot), pal.sole, false);
-  push(shapes, shoeStripe(nearLeg.end, nearFoot), pal.stripe, false);
+  sideWaistDetail(shapes, hip, shoulder);
+  pushShortsLeg(shapes, hip, spec.thigh, pal.shorts, ANT, 0);
+  pushShin(shapes, nearLeg, pal.skin, ANT, 0);
+  pushShoe(shapes, nearLeg.end, nearFoot, pal.shoe, pal);
   push(shapes, neck, pal.skin);
-  pushArm(shapes, nearArm, pal.skin);
+  neckDetail(shapes, neckSeg, pal.skin, false);
+  pushArm(shapes, nearArm, pal.skin, ANT, 0);
   pushHead(shapes, "side", headCenter, headTilt, pal);
 
   if (spec.weight) {
-    for (const pts of dumbbell(nearArm.end, spec.fore)) {
-      push(shapes, pts, pal.metal);
+    const bell = dumbbell(nearArm.end, spec.fore);
+    push(shapes, bell.bar, pal.metal);
+    for (const plate of bell.plates) {
+      shapes.push({ pts: plate, fill: pal.metal, shade: "linear", sharp: true });
     }
+    for (const cap of bell.caps) glaze(shapes, cap, dark(pal.metal), 0.45);
   }
   return shapes;
 }
@@ -1381,7 +2040,8 @@ function buildFront(spec: FrontSpec, pal: Palette): Raw[] {
   const neckBase = add({ x: hip.x, y: shoulderY }, axis, -6);
   const neckTop = add({ x: hip.x, y: shoulderY }, axis, LEN.neck);
   const headCenter = add({ x: hip.x, y: shoulderY }, axis, LEN.neck + LEN.head * 0.62);
-  const neck = solidLimb(neckBase, neckTop, [14, 12, 11, 10]);
+  const neckSeg: Seg = { a: neckBase, b: neckTop, r: [14, 12, 11, 10] };
+  const neck = solidLimb(neckSeg.a, neckSeg.b, neckSeg.r);
 
   const shapes: Raw[] = [];
   const { minX, maxX, maxY } = boundsOf([
@@ -1392,25 +2052,32 @@ function buildFront(spec: FrontSpec, pal: Palette): Raw[] {
     frontTorso(hip, shoulderY),
     placeHead(headCenter, 0, LEN.head, FRONT_HEAD),
   ]);
-  push(shapes, rect(minX - 10, maxY + 2, maxX - minX + 20, 8), pal.ground, false);
+  pushFlat(shapes, rect(minX - 10, maxY + 2, maxX - minX + 20, 8), pal.ground);
 
-  pushLeg(shapes, legL, footL, pal.skin, pal.shoe, pal);
-  pushLeg(shapes, legR, footR, pal.skin, pal.shoe, pal);
+  pushLeg(shapes, legL, footL, pal.skin, pal.shoe, pal, 0, -1);
+  pushLeg(shapes, legR, footR, pal.skin, pal.shoe, pal, 0, 1);
   push(shapes, frontTorso(hip, shoulderY), pal.skin);
   push(shapes, frontTank(hip, shoulderY), pal.tank);
   push(shapes, frontPec(hip, shoulderY, -1), pal.tankLite);
   push(shapes, frontPec(hip, shoulderY, 1), pal.tankLite);
+  frontTankDetail(shapes, hip, shoulderY, pal);
   push(shapes, frontScoop(hip, shoulderY), pal.skin);
+  frontScoopDetail(shapes, hip, shoulderY, pal);
   push(shapes, frontShorts(hip, shoulderY), pal.shorts);
+  frontShortsDetail(shapes, hip, shoulderY);
   push(shapes, frontWaist(hip, shoulderY), pal.waist, false);
-  pushShortsLeg(shapes, hipL, spec.thighL, pal.shorts);
-  pushShortsLeg(shapes, hipR, spec.thighR, pal.shorts);
-  pushArm(shapes, armL, pal.skin);
-  pushArm(shapes, armR, pal.skin);
+  frontWaistDetail(shapes, hip, shoulderY);
+  pushShortsLeg(shapes, hipL, spec.thighL, pal.shorts, 0, -1);
+  pushShortsLeg(shapes, hipR, spec.thighR, pal.shorts, 0, 1);
+  pushArm(shapes, armL, pal.skin, 0, -1);
+  pushArm(shapes, armR, pal.skin, 0, 1);
   push(shapes, neck, pal.skin);
+  neckDetail(shapes, neckSeg, pal.skin, true);
   pushHead(shapes, "front", headCenter, 0, pal);
   return shapes;
 }
+
+export const FIGURE_VIEWBOX = "0 0 200 260";
 
 export function buildFigure(
   slug: ExerciseSlug,
@@ -1420,5 +2087,58 @@ export function buildFigure(
   const spec = POSES[slug][phase];
   const pal = PALETTE[tone];
   const raw = spec.plane === "side" ? buildSide(spec, pal) : buildFront(spec, pal);
-  return { viewBox: "0 0 200 260", shapes: fit(raw) };
+  return { viewBox: FIGURE_VIEWBOX, shapes: fit(raw) };
+}
+
+export type FigurePaint = { id: string; fill: string; mode: "linear" | "radial"; hi: string; lo: string };
+
+/** One gradient per (mode, base color); shared by the React component and the 4K exporter. */
+export function figurePaints(shapes: Shape[], uid: string): { paints: FigurePaint[]; fillOf: (s: Shape) => string } {
+  const paints: FigurePaint[] = [];
+  const ids = new Map<string, string>();
+  for (const shape of shapes) {
+    if (shape.shade === false) continue;
+    const key = `${shape.shade}:${shape.fill}`;
+    if (ids.has(key)) continue;
+    const id = `${uid}-${paints.length}`;
+    ids.set(key, id);
+    const tone = shadeOf(shape.fill);
+    paints.push({ id, fill: shape.fill, mode: shape.shade, hi: tone.hi, lo: tone.lo });
+  }
+  const fillOf = (s: Shape) =>
+    s.shade === false ? s.fill : `url(#${ids.get(`${s.shade}:${s.fill}`)})`;
+  return { paints, fillOf };
+}
+
+/** Standalone SVG markup of a pose (vector), used for the 4K PNG exports. */
+export function figureSvg(
+  slug: ExerciseSlug,
+  phase: PosePhase,
+  opts: { tone?: FigureTone; width?: number; height?: number; background?: string } = {}
+): string {
+  const fig = buildFigure(slug, phase, opts.tone ?? "paper");
+  const { paints, fillOf } = figurePaints(fig.shapes, `dh-${slug}-${phase}`);
+  const size =
+    opts.width && opts.height ? ` width="${opts.width}" height="${opts.height}"` : "";
+  const defs = paints
+    .map((p) =>
+      p.mode === "radial"
+        ? `<radialGradient id="${p.id}" cx="36%" cy="32%" r="72%"><stop offset="0%" stop-color="${p.hi}"/><stop offset="48%" stop-color="${p.fill}"/><stop offset="100%" stop-color="${p.lo}"/></radialGradient>`
+        : `<linearGradient id="${p.id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="${p.hi}"/><stop offset="46%" stop-color="${p.fill}"/><stop offset="100%" stop-color="${p.lo}"/></linearGradient>`
+    )
+    .join("");
+  const [vx, vy, vw, vh] = fig.viewBox.split(" ").map(Number);
+  const bg = opts.background
+    ? `<rect x="${vx - vw * 4}" y="${vy - vh * 4}" width="${vw * 9}" height="${vh * 9}" fill="${opts.background}"/>`
+    : "";
+  const body = fig.shapes
+    .map((s) => {
+      const op = s.opacity !== undefined ? ` opacity="${s.opacity}"` : "";
+      if (s.stroke) {
+        return `<path d="${s.d}" fill="none" stroke="${s.stroke}" stroke-width="${s.width}" stroke-linecap="round" stroke-linejoin="round"${op}/>`;
+      }
+      return `<path d="${s.d}" fill="${fillOf(s)}"${op}/>`;
+    })
+    .join("");
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${fig.viewBox}"${size} preserveAspectRatio="xMidYMid meet" shape-rendering="geometricPrecision">${bg}<defs>${defs}</defs>${body}</svg>`;
 }

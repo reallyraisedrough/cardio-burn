@@ -1,5 +1,5 @@
 /* Cardio Burner — offline shell + local inspiration notifications */
-const CACHE = "cardio-burner-v14";
+const CACHE = "cardio-burner-v15";
 const PRECACHE = ["/", "/manifest.webmanifest", "/icons/icon-192.png"];
 
 self.addEventListener("install", (event) => {
@@ -20,6 +20,8 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET") return;
+  // 4K pose exports are downloads only: never precached or runtime-cached (too heavy).
+  if (new URL(request.url).pathname.startsWith("/poses-4k/")) return;
   event.respondWith(
     caches.match(request).then((cached) => {
       const fetched = fetch(request)
