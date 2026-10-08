@@ -40,6 +40,14 @@ type SideSpec = {
   fore: number;
   armFar: number;
   foreFar: number;
+  /** Absolute hand direction when the hand is planted (90 = flat, fingers forward). */
+  hand?: number;
+  handFar?: number;
+  /** Foot lies on its laces (prone / kneeling) instead of on its sole. */
+  soleUp?: boolean;
+  soleUpFar?: boolean;
+  /** Shorts hem along the thigh tube (default SHORTS_HEM_T); shorter when kneeling upright. */
+  hem?: number;
   prop?: Prop;
   weight?: boolean;
 };
@@ -56,6 +64,8 @@ type FrontSpec = {
   foreL: number;
   armR: number;
   foreR: number;
+  handL?: number;
+  handR?: number;
   prop?: Prop;
   weight?: boolean;
 };
@@ -70,7 +80,7 @@ const STAND: SideSpec = {
   shin: 2,
   foot: 86,
   thighFar: -8,
-  shinFar: 1,
+  shinFar: 0,
   footFar: 86,
   arm: 9,
   fore: 5,
@@ -92,37 +102,46 @@ const FRONT_STAND: FrontSpec = {
   foreR: 3,
 };
 
+/**
+ * Joint angles per pose. Floor poses are tuned so every supporting hand, forearm, knee
+ * and foot lands exactly on the floor line (nothing below it, nothing floating); check
+ * with `node scripts/check-pose-contacts.mjs`.
+ */
 const POSES: Record<ExerciseSlug, { start: Spec; exec: Spec }> = {
   planks: {
     start: {
       ...STAND,
-      torso: 84,
-      head: -16,
-      thigh: -88,
-      shin: -86,
-      foot: 10,
-      thighFar: -84,
-      shinFar: -82,
-      footFar: 12,
-      arm: 16,
-      fore: 14,
-      armFar: 10,
-      foreFar: 8,
+      torso: 71.5,
+      head: -12,
+      thigh: -71.5,
+      shin: -71.5,
+      foot: 26.5,
+      thighFar: -71.5,
+      shinFar: -71.5,
+      footFar: 26.5,
+      arm: 0,
+      fore: 0,
+      armFar: 0,
+      foreFar: 0,
+      hand: 90,
+      handFar: 90,
     },
     exec: {
       ...STAND,
-      torso: 88,
-      head: -14,
-      thigh: -90,
-      shin: -88,
-      foot: 8,
-      thighFar: -86,
-      shinFar: -84,
-      footFar: 10,
-      arm: 14,
-      fore: 92,
-      armFar: 8,
-      foreFar: 88,
+      torso: 82.2,
+      head: -12,
+      thigh: -82.2,
+      shin: -82.2,
+      foot: 15.8,
+      thighFar: -82.2,
+      shinFar: -82.2,
+      footFar: 15.8,
+      arm: 0,
+      fore: 83.6,
+      armFar: 0,
+      foreFar: 83.6,
+      hand: 90,
+      handFar: 90,
     },
   },
   burpees: {
@@ -130,10 +149,10 @@ const POSES: Record<ExerciseSlug, { start: Spec; exec: Spec }> = {
       ...STAND,
       torso: 8,
       head: -8,
-      thigh: 22,
-      shin: 10,
-      thighFar: 12,
-      shinFar: 6,
+      thigh: 18.5,
+      shin: 6,
+      thighFar: 8.9,
+      shinFar: 17.7,
       arm: 28,
       fore: 16,
       armFar: 16,
@@ -141,18 +160,20 @@ const POSES: Record<ExerciseSlug, { start: Spec; exec: Spec }> = {
     },
     exec: {
       ...STAND,
-      torso: 86,
-      head: -8,
-      thigh: -86,
-      shin: -84,
-      foot: 8,
-      thighFar: -82,
-      shinFar: -80,
-      footFar: 10,
-      arm: 52,
-      fore: 6,
-      armFar: 44,
-      foreFar: 2,
+      torso: 71.5,
+      head: -12,
+      thigh: -71.5,
+      shin: -71.5,
+      foot: 26.5,
+      thighFar: -71.5,
+      shinFar: -71.5,
+      footFar: 26.5,
+      arm: 0,
+      fore: 0,
+      armFar: 0,
+      foreFar: 0,
+      hand: 90,
+      handFar: 90,
     },
   },
   jogging: {
@@ -160,10 +181,10 @@ const POSES: Record<ExerciseSlug, { start: Spec; exec: Spec }> = {
       ...STAND,
       torso: 16,
       head: -10,
-      thigh: 24,
-      shin: 8,
-      thighFar: -20,
-      shinFar: 10,
+      thigh: 22.6,
+      shin: 7.5,
+      thighFar: -21.4,
+      shinFar: 10.6,
       arm: -28,
       fore: 8,
       armFar: 22,
@@ -190,28 +211,28 @@ const POSES: Record<ExerciseSlug, { start: Spec; exec: Spec }> = {
       ...STAND,
       torso: -26,
       head: 8,
-      thigh: 64,
-      shin: 16,
-      thighFar: 52,
-      shinFar: 12,
+      thigh: 61,
+      shin: 9.5,
+      thighFar: 50.7,
+      shinFar: 34.1,
       arm: -6,
       fore: -2,
-      armFar: -12,
-      foreFar: -6,
+      armFar: -6,
+      foreFar: -2,
       prop: "dip",
     },
     exec: {
       ...STAND,
       torso: -36,
       head: 6,
-      thigh: 72,
-      shin: 20,
-      thighFar: 60,
-      shinFar: 16,
+      thigh: 69.8,
+      shin: 12.5,
+      thighFar: 59.4,
+      shinFar: 36.6,
       arm: -68,
       fore: 6,
-      armFar: -58,
-      foreFar: 2,
+      armFar: -68,
+      foreFar: 6,
       prop: "dip",
     },
   },
@@ -219,16 +240,16 @@ const POSES: Record<ExerciseSlug, { start: Spec; exec: Spec }> = {
     start: { ...STAND },
     exec: {
       ...STAND,
-      torso: 10,
-      head: -8,
-      thigh: 74,
-      shin: 14,
-      thighFar: -52,
-      shinFar: 16,
-      arm: 14,
-      fore: 8,
-      armFar: -10,
-      foreFar: -4,
+      torso: 6,
+      thigh: 82.5,
+      shin: 4,
+      thighFar: 0,
+      shinFar: -100.6,
+      footFar: 19.4,
+      arm: -20,
+      fore: -10,
+      armFar: 16,
+      foreFar: 26,
     },
   },
   squats: {
@@ -237,10 +258,10 @@ const POSES: Record<ExerciseSlug, { start: Spec; exec: Spec }> = {
       ...STAND,
       torso: 32,
       head: -22,
-      thigh: 70,
-      shin: 24,
-      thighFar: 58,
-      shinFar: 18,
+      thigh: 67.8,
+      shin: 15.4,
+      thighFar: 57.3,
+      shinFar: 37.7,
       arm: 48,
       fore: 72,
       armFar: 40,
@@ -250,46 +271,50 @@ const POSES: Record<ExerciseSlug, { start: Spec; exec: Spec }> = {
   "push-ups": {
     start: {
       ...STAND,
-      torso: 84,
-      head: -16,
-      thigh: -88,
-      shin: -86,
-      foot: 10,
-      thighFar: -84,
-      shinFar: -82,
-      footFar: 12,
-      arm: 16,
-      fore: 14,
-      armFar: 10,
-      foreFar: 8,
+      torso: 71.5,
+      head: -12,
+      thigh: -71.5,
+      shin: -71.5,
+      foot: 26.5,
+      thighFar: -71.5,
+      shinFar: -71.5,
+      footFar: 26.5,
+      arm: 0,
+      fore: 0,
+      armFar: 0,
+      foreFar: 0,
+      hand: 90,
+      handFar: 90,
     },
     exec: {
       ...STAND,
-      torso: 80,
+      torso: 88.6,
       head: -12,
-      thigh: -84,
-      shin: -82,
-      foot: 10,
-      thighFar: -80,
-      shinFar: -78,
-      footFar: 12,
-      arm: 50,
-      fore: 4,
-      armFar: 42,
-      foreFar: 0,
+      thigh: -88.6,
+      shin: -88.6,
+      foot: 20.1,
+      thighFar: -88.6,
+      shinFar: -88.6,
+      footFar: 20.1,
+      arm: -99.6,
+      fore: 26.9,
+      armFar: -99.6,
+      foreFar: 26.9,
+      hand: 90,
+      handFar: 90,
     },
   },
   "sit-ups": {
     start: {
       ...STAND,
-      torso: -80,
-      head: 6,
-      thigh: 114,
-      shin: 40,
-      foot: 86,
-      thighFar: 106,
-      shinFar: 36,
-      footFar: 86,
+      torso: -90.8,
+      head: -10,
+      thigh: 127.7,
+      shin: -32.4,
+      foot: 88,
+      thighFar: 126.3,
+      shinFar: -34.5,
+      footFar: 88,
       arm: 172,
       fore: 168,
       armFar: 164,
@@ -299,10 +324,12 @@ const POSES: Record<ExerciseSlug, { start: Spec; exec: Spec }> = {
       ...STAND,
       torso: -34,
       head: -4,
-      thigh: 104,
-      shin: 38,
-      thighFar: 96,
-      shinFar: 34,
+      thigh: 127.6,
+      shin: 40.3,
+      foot: 88,
+      thighFar: 126.4,
+      shinFar: 41.9,
+      footFar: 88,
       arm: 68,
       fore: 52,
       armFar: 58,
@@ -314,10 +341,10 @@ const POSES: Record<ExerciseSlug, { start: Spec; exec: Spec }> = {
       ...STAND,
       torso: -88,
       head: 4,
-      thigh: 108,
-      shin: 34,
-      thighFar: 100,
-      shinFar: 30,
+      thigh: 107.9,
+      shin: 26.8,
+      thighFar: 100.7,
+      shinFar: 40.3,
       arm: 176,
       fore: 174,
       armFar: 168,
@@ -329,10 +356,10 @@ const POSES: Record<ExerciseSlug, { start: Spec; exec: Spec }> = {
       ...STAND,
       torso: -88,
       head: 2,
-      thigh: 108,
-      shin: 34,
-      thighFar: 100,
-      shinFar: 30,
+      thigh: 107.9,
+      shin: 26.8,
+      thighFar: 100.7,
+      shinFar: 40.3,
       arm: 166,
       fore: -72,
       armFar: 158,
@@ -344,31 +371,37 @@ const POSES: Record<ExerciseSlug, { start: Spec; exec: Spec }> = {
   "downward-dog": {
     start: {
       ...STAND,
-      torso: 74,
-      head: 12,
-      thigh: 10,
-      shin: 4,
-      thighFar: 2,
-      shinFar: 2,
-      arm: 76,
-      fore: 72,
-      armFar: 68,
-      foreFar: 64,
+      torso: 77.8,
+      head: -14,
+      thigh: 0,
+      shin: -105.5,
+      foot: 10.1,
+      thighFar: 0,
+      shinFar: -105.5,
+      footFar: 10.1,
+      arm: 0,
+      fore: 0,
+      armFar: 0,
+      foreFar: 0,
+      hand: 90,
+      handFar: 90,
     },
     exec: {
       ...STAND,
-      torso: 122,
-      head: -8,
-      thigh: -58,
-      shin: -54,
-      foot: 18,
-      thighFar: -50,
-      shinFar: -46,
-      footFar: 16,
-      arm: 24,
-      fore: 20,
-      armFar: 16,
-      foreFar: 12,
+      torso: 126,
+      head: 4,
+      thigh: -43,
+      shin: -43,
+      foot: 90,
+      thighFar: -43,
+      shinFar: -43,
+      footFar: 90,
+      arm: 54,
+      fore: 54,
+      armFar: 54,
+      foreFar: 54,
+      hand: 90,
+      handFar: 90,
     },
   },
   warrior: {
@@ -384,8 +417,8 @@ const POSES: Record<ExerciseSlug, { start: Spec; exec: Spec }> = {
       thighL: -82,
       shinL: -8,
       footL: -70,
-      thighR: 74,
-      shinR: 70,
+      thighR: 57.5,
+      shinR: 53.5,
       footR: 74,
       armL: -92,
       foreL: -90,
@@ -398,63 +431,78 @@ const POSES: Record<ExerciseSlug, { start: Spec; exec: Spec }> = {
       ...STAND,
       torso: 2,
       head: -4,
-      thigh: 12,
-      shin: -96,
-      foot: -90,
-      thighFar: 4,
-      shinFar: -88,
-      footFar: -86,
+      thigh: 6,
+      shin: -83.2,
+      foot: -66.8,
+      thighFar: 0,
+      shinFar: -83.9,
+      footFar: -66,
       arm: 14,
       fore: 8,
       armFar: -6,
       foreFar: -2,
+      hem: 0.4,
+      soleUp: true,
+      soleUpFar: true,
     },
     exec: {
       ...STAND,
-      torso: 94,
-      head: -8,
-      thigh: 84,
-      shin: -92,
-      foot: -90,
-      thighFar: 84,
-      shinFar: -92,
-      footFar: -90,
-      arm: 86,
-      fore: 88,
-      armFar: 86,
-      foreFar: 88,
+      torso: 102,
+      head: 10.1,
+      thigh: 67.5,
+      shin: -82.9,
+      foot: -67.2,
+      thighFar: 67.5,
+      shinFar: -82.9,
+      footFar: -67.2,
+      arm: 72,
+      fore: 83.6,
+      armFar: 72,
+      foreFar: 83.6,
+      soleUp: true,
+      soleUpFar: true,
+      hand: 90,
+      handFar: 90,
     },
   },
   cobra: {
     start: {
       ...STAND,
-      torso: 76,
-      head: -28,
-      thigh: -90,
-      shin: -88,
-      foot: 6,
-      thighFar: -86,
-      shinFar: -84,
-      footFar: 8,
-      arm: 42,
-      fore: 6,
-      armFar: 34,
-      foreFar: 2,
+      torso: 93.3,
+      head: -22,
+      thigh: -80.7,
+      shin: -82.2,
+      foot: -67.7,
+      thighFar: -80.7,
+      shinFar: -82.2,
+      footFar: -67.7,
+      arm: -106.1,
+      fore: 42.9,
+      armFar: -106.1,
+      foreFar: 42.9,
+      soleUp: true,
+      soleUpFar: true,
+      hand: 90,
+      handFar: 90,
     },
     exec: {
       ...STAND,
-      torso: 50,
-      head: -40,
-      thigh: -94,
-      shin: -92,
-      foot: 8,
-      thighFar: -90,
-      shinFar: -88,
-      footFar: 10,
-      arm: 28,
-      fore: 8,
-      armFar: 20,
-      foreFar: 4,
+      torso: 35.1,
+      head: -42,
+      thigh: -80.7,
+      shin: -82.2,
+      foot: -67.7,
+      thighFar: -80.7,
+      shinFar: -82.2,
+      footFar: -67.7,
+      arm: -10,
+      fore: 13.8,
+      armFar: -10,
+      foreFar: 13.8,
+      soleUp: true,
+      soleUpFar: true,
+      hand: 90,
+      handFar: 90,
     },
   },
   "hip-flexor": {
@@ -462,30 +510,34 @@ const POSES: Record<ExerciseSlug, { start: Spec; exec: Spec }> = {
       ...STAND,
       torso: 2,
       head: -4,
-      thigh: 12,
-      shin: -96,
-      foot: -90,
-      thighFar: 4,
-      shinFar: -88,
-      footFar: -86,
+      thigh: 6,
+      shin: -83.2,
+      foot: -66.8,
+      thighFar: 0,
+      shinFar: -83.9,
+      footFar: -66,
       arm: 14,
       fore: 8,
       armFar: -6,
       foreFar: -2,
+      hem: 0.4,
+      soleUp: true,
+      soleUpFar: true,
     },
     exec: {
       ...STAND,
       torso: -6,
       head: 2,
-      thigh: 76,
-      shin: 12,
-      thighFar: -82,
-      shinFar: -96,
-      footFar: -70,
+      thigh: 84.1,
+      shin: 6,
+      thighFar: -3.7,
+      shinFar: -82.5,
+      footFar: -67.6,
       arm: 36,
       fore: 18,
       armFar: 8,
       foreFar: 2,
+      soleUpFar: true,
     },
   },
   hamstring: {
@@ -512,10 +564,9 @@ const POSES: Record<ExerciseSlug, { start: Spec; exec: Spec }> = {
       ...STAND,
       torso: -14,
       head: 8,
-      thigh: 6,
-      shin: 2,
-      thighFar: -4,
-      shinFar: 0,
+      thigh: 4.9,
+      shin: 1.7,
+      thighFar: -5.1,
       arm: -62,
       fore: -78,
       armFar: -50,
@@ -555,30 +606,34 @@ const POSES: Record<ExerciseSlug, { start: Spec; exec: Spec }> = {
       ...STAND,
       torso: 12,
       head: -8,
-      thigh: 14,
-      shin: 6,
-      thighFar: -10,
-      shinFar: -4,
-      arm: 68,
-      fore: 66,
-      armFar: 58,
-      foreFar: 56,
+      thigh: 11.9,
+      shin: 5.2,
+      thighFar: -12.1,
+      shinFar: -4.8,
+      arm: 57.6,
+      fore: 56.8,
+      armFar: 65.9,
+      foreFar: 63.4,
       prop: "wall",
+      hand: 180,
+      handFar: 180,
     },
     exec: {
       ...STAND,
       torso: 16,
       head: -10,
-      thigh: 38,
+      thigh: 38.1,
       shin: 22,
-      thighFar: -34,
+      thighFar: -33.9,
       shinFar: -30,
       footFar: 82,
-      arm: 74,
-      fore: 72,
-      armFar: 64,
-      foreFar: 62,
+      arm: 62.1,
+      fore: 61.4,
+      armFar: 71.9,
+      foreFar: 69.7,
       prop: "wall",
+      hand: 180,
+      handFar: 180,
     },
   },
 };
@@ -758,10 +813,11 @@ function radiusAt(radii: number[], t: number): number {
 const LIMB_STEPS = 18;
 const CAP_STEPS = 12;
 
-type Seg = { a: Pt; b: Pt; r: number[] };
+/** r: radii on the +normal side; rb (optional): radii on the other side. */
+type Seg = { a: Pt; b: Pt; r: number[]; rb?: number[] };
 
 /** Thick limb with a muscle profile and round ends so joints fuse into one body. */
-function solidLimb(a: Pt, b: Pt, radii: number[]): Pt[] {
+function solidLimb(a: Pt, b: Pt, radii: number[], back: number[] = radii): Pt[] {
   const dx = b.x - a.x;
   const dy = b.y - a.y;
   const len = Math.hypot(dx, dy) || 1;
@@ -775,9 +831,9 @@ function solidLimb(a: Pt, b: Pt, radii: number[]): Pt[] {
     const r = radiusAt(radii, t);
     pts.push({ x: a.x + dx * t + px * r, y: a.y + dy * t + py * r });
   }
-  const rb = radiusAt(radii, 1);
   for (let i = 1; i < CAP_STEPS; i++) {
     const ang = (Math.PI * i) / CAP_STEPS;
+    const rb = radiusAt(radii, 1) + (radiusAt(back, 1) - radiusAt(radii, 1)) * (i / CAP_STEPS);
     pts.push({
       x: b.x + Math.cos(ang) * px * rb + Math.sin(ang) * ux * rb,
       y: b.y + Math.cos(ang) * py * rb + Math.sin(ang) * uy * rb,
@@ -785,12 +841,12 @@ function solidLimb(a: Pt, b: Pt, radii: number[]): Pt[] {
   }
   for (let i = LIMB_STEPS; i >= 0; i--) {
     const t = i / LIMB_STEPS;
-    const r = radiusAt(radii, t);
+    const r = radiusAt(back, t);
     pts.push({ x: a.x + dx * t - px * r, y: a.y + dy * t - py * r });
   }
-  const ra = radiusAt(radii, 0);
   for (let i = 1; i < CAP_STEPS; i++) {
     const ang = (Math.PI * i) / CAP_STEPS;
+    const ra = radiusAt(back, 0) + (radiusAt(radii, 0) - radiusAt(back, 0)) * (i / CAP_STEPS);
     pts.push({
       x: a.x - Math.cos(ang) * px * ra - Math.sin(ang) * ux * ra,
       y: a.y - Math.cos(ang) * py * ra - Math.sin(ang) * uy * ra,
@@ -804,7 +860,7 @@ function segAt(seg: Seg, t: number, off: number): Pt {
   const dx = seg.b.x - seg.a.x;
   const dy = seg.b.y - seg.a.y;
   const len = Math.hypot(dx, dy) || 1;
-  const r = radiusAt(seg.r, t) * off;
+  const r = radiusAt(off < 0 && seg.rb ? seg.rb : seg.r, t) * off;
   return { x: seg.a.x + dx * t + (-dy / len) * r, y: seg.a.y + dy * t + (dx / len) * r };
 }
 
@@ -877,6 +933,9 @@ function torsoHalf(t: number): number {
 
 const THIGH_R = [16, 24, 20, 13];
 const SHIN_R = [12, 14, 21, 16, 10];
+/** Side view: the calf bulges behind, the shin front (tibia) stays nearly straight. */
+const CALF_R = [12, 14.5, 22.5, 17, 10];
+const TIBIA_R = [12, 13.2, 14.2, 11.6, 9.6];
 const ARM_R = [11.5, 13.5, 12, 9.5];
 /** Forearm: full below the elbow, tapering to a slim wrist. */
 const FORE_R = [9, 10.2, 8.4, 6.4, 5];
@@ -885,6 +944,8 @@ const HAND_R = [4.6, 5.5, 5.9, 5.5, 4.7, 3.9];
 const HAND_LEN = 20;
 
 type Raw = {
+  /** Body part this shape belongs to (e.g. "handN", "footF", "torso"); "" for props. */
+  tag?: string;
   pts: Pt[];
   fill: string;
   shade: Shade;
@@ -894,23 +955,37 @@ type Raw = {
   opacity?: number;
 };
 
+/** Body part currently being drawn; stamped on every shape for floor-contact checks. */
+let TAG = "";
+let SIDE = "";
+
+function withTag<T>(tag: string, fn: () => T): T {
+  const prev = TAG;
+  TAG = tag;
+  try {
+    return fn();
+  } finally {
+    TAG = prev;
+  }
+}
+
 function push(shapes: Raw[], pts: Pt[], fill: string, shade: Shade = "linear") {
-  shapes.push({ pts, fill, shade });
+  shapes.push({ pts, fill, shade, tag: TAG });
 }
 
 /** Hard-edged prop (bench, wall, floor): straight sides on purpose. */
 function pushFlat(shapes: Raw[], pts: Pt[], fill: string) {
-  shapes.push({ pts, fill, shade: false, sharp: true });
+  shapes.push({ pts, fill, shade: false, sharp: true, tag: "" });
 }
 
 /** Translucent flat tone laid over a body part: muscle light and shadow. Not a blur. */
 function glaze(shapes: Raw[], pts: Pt[], fill: string, opacity: number) {
-  shapes.push({ pts, fill, shade: false, opacity });
+  shapes.push({ pts, fill, shade: false, opacity, tag: TAG });
 }
 
 /** Thin open curve: hair strands, seams, folds, creases, laces. */
 function line(shapes: Raw[], pts: Pt[], color: string, opacity: number, width: number) {
-  shapes.push({ pts, fill: "none", shade: false, stroke: color, width, opacity });
+  shapes.push({ pts, fill: "none", shade: false, stroke: color, width, opacity, tag: TAG });
 }
 
 function lit(c: string): string {
@@ -1215,12 +1290,6 @@ function worldOval(c: Pt, rx: number, ry: number, rotDeg: number, n = 24): Pt[] 
   return pts;
 }
 
-function chestNormal(hip: Pt, shoulder: Pt): Pt {
-  const dx = shoulder.x - hip.x;
-  const dy = shoulder.y - hip.y;
-  const len = Math.hypot(dx, dy) || 1;
-  return { x: -dy / len, y: dx / len };
-}
 
 function placeHead(center: Pt, tiltDeg: number, r: number, local: Pt[]): Pt[] {
   const t = (tiltDeg * Math.PI) / 180;
@@ -1562,11 +1631,12 @@ function neckDetail(shapes: Raw[], neck: Seg, skin: string, front: boolean) {
   glaze(shapes, segLens(neck, 0.0, 0.5, -0.5, 0.34), L, 0.24);
 }
 
-function footFrame(ankle: Pt, deg: number) {
+function footFrame(ankle: Pt, deg: number, up = false) {
   const d = dir(deg);
   let nx = -d.y;
   let ny = d.x;
-  if (ny < 0) {
+  // The sole faces the floor, unless the foot lies on its laces (prone, kneeling).
+  if (up ? ny > 0 : ny < 0) {
     nx = -nx;
     ny = -ny;
   }
@@ -1582,8 +1652,8 @@ function at(p: Pt, d: Pt, along: number, n: Pt, down: number): Pt {
   return { x: p.x + d.x * along + n.x * down, y: p.y + d.y * along + n.y * down };
 }
 
-function footPoly(ankle: Pt, deg: number): Pt[] {
-  const { n, heel, mid, ball, toe } = footFrame(ankle, deg);
+function footPoly(ankle: Pt, deg: number, up = false): Pt[] {
+  const { n, heel, mid, ball, toe } = footFrame(ankle, deg, up);
   return [
     { x: heel.x + n.x * 2, y: heel.y + n.y * 2 },
     { x: heel.x + n.x * 13, y: heel.y + n.y * 13 },
@@ -1597,8 +1667,8 @@ function footPoly(ankle: Pt, deg: number): Pt[] {
   ];
 }
 
-function solePoly(ankle: Pt, deg: number): Pt[] {
-  const { n, heel, ball, toe } = footFrame(ankle, deg);
+function solePoly(ankle: Pt, deg: number, up = false): Pt[] {
+  const { n, heel, ball, toe } = footFrame(ankle, deg, up);
   return [
     { x: heel.x + n.x * 7, y: heel.y + n.y * 7 },
     { x: ball.x + n.x * 7, y: ball.y + n.y * 7 },
@@ -1609,8 +1679,8 @@ function solePoly(ankle: Pt, deg: number): Pt[] {
   ];
 }
 
-function shoeStripe(ankle: Pt, deg: number): Pt[] {
-  const { n, d, mid } = footFrame(ankle, deg);
+function shoeStripe(ankle: Pt, deg: number, up = false): Pt[] {
+  const { n, d, mid } = footFrame(ankle, deg, up);
   const a = add(mid, d, -1);
   const b = add(mid, d, 7);
   return [
@@ -1622,19 +1692,23 @@ function shoeStripe(ankle: Pt, deg: number): Pt[] {
 }
 
 /** Trainer: upper, heel counter, toe cap, midsole, outsole tread, swoosh stripe, laces. */
-function pushShoe(shapes: Raw[], ankle: Pt, deg: number, upper: string, pal: Palette) {
-  const { d, n, heel, ball, toe } = footFrame(ankle, deg);
-  push(shapes, footPoly(ankle, deg), upper);
+function pushShoe(shapes: Raw[], ankle: Pt, deg: number, upper: string, pal: Palette, up = false) {
+  withTag("foot" + SIDE, () => drawShoe(shapes, ankle, deg, upper, pal, up));
+}
+
+function drawShoe(shapes: Raw[], ankle: Pt, deg: number, upper: string, pal: Palette, up: boolean) {
+  const { d, n, heel, ball, toe } = footFrame(ankle, deg, up);
+  push(shapes, footPoly(ankle, deg, up), upper);
   glaze(shapes, worldOval(at(heel, d, 2.5, n, 6), 4.6, 5.6, deg), dark(upper), 0.22);
   line(shapes, [at(ball, d, 3, n, -1.5), at(ball, d, 8, n, 3), at(ball, d, 7, n, 9)], dark(upper), 0.35, 0.7);
   line(shapes, [at(heel, d, 1, n, 0.5), at(ankle, d, -2, n, -3.2), at(ankle, d, 3, n, -4)], dark(upper), 0.4, 0.75);
-  push(shapes, solePoly(ankle, deg), pal.sole, false);
+  push(shapes, solePoly(ankle, deg, up), pal.sole, false);
   line(shapes, [at(heel, d, 0.5, n, 8.6), at(ball, d, 0, n, 8.6), at(toe, d, -2, n, 6)], "#f4f1ec", 0.85, 1.3);
   for (let i = 0; i < 6; i++) {
     const p = add(heel, d, 3 + i * 5.2);
     line(shapes, [at(p, d, 0, n, 11.5), at(p, d, 1.6, n, 13.6)], "#4a4440", 0.8, 0.55);
   }
-  push(shapes, shoeStripe(ankle, deg), pal.stripe, false);
+  push(shapes, shoeStripe(ankle, deg, up), pal.stripe, false);
   line(shapes, [at(ankle, d, 3, n, 3), at(ankle, d, 11, n, 9.5)], mixHex(pal.stripe, "#fff1e4", 0.3), 0.6, 0.45);
   for (let i = 0; i < 4; i++) {
     const p = add(ankle, d, 1 + i * 3.8);
@@ -1643,14 +1717,16 @@ function pushShoe(shapes: Raw[], ankle: Pt, deg: number, upper: string, pal: Pal
   }
 }
 
-type Chain = { knee: Pt; end: Pt; toe: Pt; parts: Pt[][]; segs: Seg[] };
+type Chain = { knee: Pt; end: Pt; toe: Pt; parts: Pt[][]; segs: Seg[]; thumbSide?: number; soleUp?: boolean };
 
 function limbChain(
   origin: Pt,
   upperDeg: number,
   foreDeg: number,
   kind: "arm" | "leg",
-  footDeg?: number
+  footDeg?: number,
+  handDeg?: number,
+  soleUp = false
 ): Chain {
   const upperLen = kind === "arm" ? LEN.upper : LEN.thigh;
   const lowerLen = kind === "arm" ? LEN.fore : LEN.shin;
@@ -1661,8 +1737,10 @@ function limbChain(
   if (kind === "arm") {
     const root = add(origin, dUpper, -4);
     const elbow = add(knee, dLower, -8);
-    const hand = add(end, dLower, HAND_LEN - 2);
-    const wrist = add(end, dLower, -2);
+    // Hands follow the forearm unless planted (e.g. flat on the floor).
+    const dHand = handDeg === undefined ? dLower : dir(handDeg);
+    const hand = add(end, dHand, HAND_LEN - 2);
+    const wrist = add(end, dHand, -2);
     const segs: Seg[] = [
       { a: root, b: knee, r: ARM_R },
       { a: elbow, b: end, r: FORE_R },
@@ -1678,7 +1756,7 @@ function limbChain(
   ];
   const fd = footDeg ?? autoFoot(foreDeg);
   const toe = add(end, dir(fd), LEN.foot);
-  return { knee, end, toe, parts: [...segs.map((s) => solidLimb(s.a, s.b, s.r)), footPoly(end, fd)], segs };
+  return { knee, end, toe, parts: [...segs.map((s) => solidLimb(s.a, s.b, s.r)), footPoly(end, fd, soleUp)], segs, soleUp };
 }
 
 
@@ -1767,13 +1845,17 @@ function shinMuscles(shapes: Raw[], seg: Seg, skin: string, ant: number, med: nu
 }
 
 function pushThigh(shapes: Raw[], leg: Chain, skin: string, ant: number, med: number) {
-  push(shapes, leg.parts[0], skin);
-  thighMuscles(shapes, leg.segs[0], skin, ant, med);
+  withTag("thigh" + SIDE, () => {
+    push(shapes, leg.parts[0], skin);
+    thighMuscles(shapes, leg.segs[0], skin, ant, med);
+  });
 }
 
 function pushShin(shapes: Raw[], leg: Chain, skin: string, ant: number, med: number) {
-  push(shapes, leg.parts[1], skin);
-  shinMuscles(shapes, leg.segs[1], skin, ant, med);
+  withTag("shin" + SIDE, () => {
+    push(shapes, leg.parts[1], skin);
+    shinMuscles(shapes, leg.segs[1], skin, ant, med);
+  });
 }
 
 function pushLeg(
@@ -1788,7 +1870,7 @@ function pushLeg(
 ) {
   pushThigh(shapes, leg, skin, ant, med);
   pushShin(shapes, leg, skin, ant, med);
-  pushShoe(shapes, leg.end, footDeg, shoe, pal);
+  pushShoe(shapes, leg.end, footDeg, shoe, pal, leg.soleUp);
 }
 
 function monotoneHull(points: Pt[]): Pt[] {
@@ -1868,26 +1950,34 @@ function shortsPelvis(band: Pt[], roots: Seg[]): Pt[] {
   return denseLoop(monotoneHull(pts));
 }
 
-function pushShortsLeg(shapes: Raw[], seg: Seg, fill: string, ant: number, med: number) {
-  shapes.push({ pts: tubeOutline(seg, SHORTS_HEM_T), fill, shade: false });
+function pushShortsLeg(shapes: Raw[], seg: Seg, fill: string, ant: number, med: number, hem = SHORTS_HEM_T) {
+  // Detail is laid out for the default hem; scale it with a shorter/longer leg.
+  const k = hem / SHORTS_HEM_T;
+  shapes.push({ pts: tubeOutline(seg, hem), fill, shade: false, tag: "shorts" });
   const lead = ant !== 0 ? ant : med;
-  glaze(shapes, segLens(seg, 0.1, 0.46, lead * 0.4, 0.34), lit(fill), 0.09);
-  line(shapes, segPts(seg, [[0.488, -0.97], [0.5, 0], [0.488, 0.97]]), "#050505", 0.7, 1.1);
-  line(shapes, segPts(seg, [[0.455, -0.95], [0.468, 0], [0.455, 0.95]]), "#3a3a3a", 0.7, 0.4);
-  line(shapes, segPts(seg, [[0.12, lead * 0.7], [0.27, lead * 0.35], [0.43, lead * 0.1]]), "#000000", 0.5, 0.9);
-  line(shapes, segPts(seg, [[0.14, lead * 0.55], [0.29, lead * 0.2], [0.44, -lead * 0.05]]), "#3d3d3d", 0.5, 0.6);
+  glaze(shapes, segLens(seg, 0.1 * k, 0.46 * k, lead * 0.4, 0.34), lit(fill), 0.09);
+  line(shapes, segPts(seg, [[0.488 * k, -0.97], [0.5 * k, 0], [0.488 * k, 0.97]]), "#050505", 0.7, 1.1);
+  line(shapes, segPts(seg, [[0.455 * k, -0.95], [0.468 * k, 0], [0.455 * k, 0.95]]), "#3a3a3a", 0.7, 0.4);
+  line(shapes, segPts(seg, [[0.12 * k, lead * 0.7], [0.27 * k, lead * 0.35], [0.43 * k, lead * 0.1]]), "#000000", 0.5, 0.9);
+  line(shapes, segPts(seg, [[0.14 * k, lead * 0.55], [0.29 * k, lead * 0.2], [0.44 * k, -lead * 0.05]]), "#3d3d3d", 0.5, 0.6);
   if (ant !== 0) {
-    line(shapes, segPts(seg, [[0.04, -ant * 0.05], [0.26, -ant * 0.08], [0.49, -ant * 0.1]]), "#2e2e2e", 0.8, 0.6);
+    line(shapes, segPts(seg, [[0.04 * k, -ant * 0.05], [0.26 * k, -ant * 0.08], [0.49 * k, -ant * 0.1]]), "#2e2e2e", 0.8, 0.6);
   }
 }
 
 function pushArm(shapes: Raw[], arm: Chain, skin: string, ant: number, med: number) {
-  push(shapes, arm.parts[0], skin);
-  upperArmMuscles(shapes, arm.segs[0], skin, ant, med);
-  push(shapes, arm.parts[1], skin);
-  forearmMuscles(shapes, arm.segs[1], skin, ant, med);
-  push(shapes, arm.parts[2], skin);
-  handDetail(shapes, arm.segs[2], skin, ant !== 0 ? ant : med);
+  withTag("upper" + SIDE, () => {
+    push(shapes, arm.parts[0], skin);
+    upperArmMuscles(shapes, arm.segs[0], skin, ant, med);
+  });
+  withTag("fore" + SIDE, () => {
+    push(shapes, arm.parts[1], skin);
+    forearmMuscles(shapes, arm.segs[1], skin, ant, med);
+  });
+  withTag("hand" + SIDE, () => {
+    push(shapes, arm.parts[2], skin);
+    handDetail(shapes, arm.segs[2], skin, arm.thumbSide ?? (ant !== 0 ? ant : med));
+  });
 }
 
 function autoFoot(shin: number): number {
@@ -1986,38 +2076,60 @@ function dumbbell(wrist: Pt, foreDeg: number): { bar: Pt[]; plates: Pt[][]; caps
   };
 }
 
-function boundsOf(parts: Pt[][]): { minX: number; maxX: number; maxY: number } {
-  let minX = Infinity;
-  let maxX = -Infinity;
-  let maxY = -Infinity;
-  for (const part of parts) {
-    for (const p of part) {
-      if (p.x < minX) minX = p.x;
-      if (p.x > maxX) maxX = p.x;
-      if (p.y > maxY) maxY = p.y;
+
+type Box = { minX: number; maxX: number; minY: number; maxY: number };
+
+function boxOf(shapes: Raw[], keep: (tag: string) => boolean): Box | null {
+  let b: Box | null = null;
+  for (const sh of shapes) {
+    if (sh.stroke || sh.fill === "none" || !keep(sh.tag ?? "")) continue;
+    for (const p of sh.pts) {
+      if (!b) b = { minX: p.x, maxX: p.x, minY: p.y, maxY: p.y };
+      else {
+        if (p.x < b.minX) b.minX = p.x;
+        if (p.x > b.maxX) b.maxX = p.x;
+        if (p.y < b.minY) b.minY = p.y;
+        if (p.y > b.maxY) b.maxY = p.y;
+      }
     }
   }
-  return { minX, maxX, maxY };
+  return b;
 }
 
-function buildSide(spec: SideSpec, pal: Palette): Raw[] {
+/** Props and the floor touch the body exactly (a hair of overlap so no seam shows). */
+const CONTACT_OVERLAP = 0.35;
+
+function isBody(tag: string): boolean {
+  return tag !== "" && tag !== "weight";
+}
+
+/** In profile the lower leg is asymmetric: calf behind (+normal), tibia in front. */
+function sideShin(leg: Chain): Chain {
+  const seg = { ...leg.segs[1], r: CALF_R, rb: TIBIA_R };
+  const parts = leg.parts.slice();
+  parts[1] = solidLimb(seg.a, seg.b, seg.r, seg.rb);
+  return { ...leg, segs: [leg.segs[0], seg], parts };
+}
+
+function sideBody(spec: SideSpec, pal: Palette) {
   const hip = { x: 0, y: 0 };
   const down = dir(spec.torso);
   const up = { x: down.x, y: -down.y };
   const shoulder = add(hip, up, LEN.torso);
-  const nrm = chestNormal(hip, shoulder);
   const spine = {
     x: (shoulder.x - hip.x) / LEN.torso,
     y: (shoulder.y - hip.y) / LEN.torso,
   };
-  const farHip = { x: hip.x - nrm.x * 7, y: hip.y - nrm.y * 4 };
-  const farShoulder = { x: shoulder.x - nrm.x * 6, y: shoulder.y - nrm.y * 3 };
+  // Far-side limbs sit a little behind in depth: a horizontal shift only, so
+  // near and far hands/feet share the same floor.
+  const farHip = { x: hip.x - 6, y: hip.y };
+  const farShoulder = { x: shoulder.x - 6, y: shoulder.y };
   const nearFoot = spec.foot ?? autoFoot(spec.shin);
   const farFoot = spec.footFar ?? autoFoot(spec.shinFar);
-  const nearLeg = limbChain(hip, spec.thigh, spec.shin, "leg", nearFoot);
-  const farLeg = limbChain(farHip, spec.thighFar, spec.shinFar, "leg", farFoot);
-  const nearArm = limbChain(shoulder, spec.arm, spec.fore, "arm");
-  const farArm = limbChain(farShoulder, spec.armFar, spec.foreFar, "arm");
+  const nearLeg = sideShin(limbChain(hip, spec.thigh, spec.shin, "leg", nearFoot, undefined, spec.soleUp));
+  const farLeg = sideShin(limbChain(farHip, spec.thighFar, spec.shinFar, "leg", farFoot, undefined, spec.soleUpFar));
+  const nearArm = limbChain(shoulder, spec.arm, spec.fore, "arm", undefined, spec.hand);
+  const farArm = limbChain(farShoulder, spec.armFar, spec.foreFar, "arm", undefined, spec.handFar);
 
   const headTilt = spec.torso + (spec.head ?? 0);
   const neckBase = add(shoulder, spine, -8);
@@ -2027,71 +2139,84 @@ function buildSide(spec: SideSpec, pal: Palette): Raw[] {
   const neck = solidLimb(neckSeg.a, neckSeg.b, neckSeg.r);
 
   const shapes: Raw[] = [];
-  const { minX, maxX, maxY } = boundsOf([
-    ...farLeg.parts,
-    ...nearLeg.parts,
-    sideTorso(hip, shoulder),
-    placeHead(headCenter, headTilt, LEN.head, PROFILE),
-  ]);
-
-  if (spec.prop === "dip") {
-    const top = Math.max(nearArm.end.y, farArm.end.y);
-    const hx = (nearArm.end.x + farArm.end.x) / 2;
-    pushFlat(shapes, rect(hx - 118, top, 136, 48), pal.prop);
-  } else if (spec.prop === "skull") {
-    const mid = { x: (hip.x + shoulder.x) / 2, y: (hip.y + shoulder.y) / 2 };
-    const backY = mid.y - nrm.y * 22;
-    const left = Math.min(headCenter.x, hip.x, nearLeg.knee.x) - 22;
-    const right = Math.max(headCenter.x, hip.x, nearLeg.knee.x) + 28;
-    pushFlat(shapes, rect(left, backY, right - left, 32), pal.prop);
-  } else if (spec.prop === "ham") {
-    const top = nearLeg.toe.y;
-    const ground = farLeg.toe.y;
-    const h = Math.max(20, ground - top);
-    pushFlat(shapes, rect(nearLeg.end.x - 22, top, 56, h), pal.prop);
-  } else if (spec.prop === "wall") {
-    const x = Math.max(nearArm.toe.x, farArm.toe.x) + 8;
-    const top = Math.min(nearArm.toe.y, farArm.toe.y) - 40;
-    pushFlat(shapes, rect(x, top, 16, maxY - top + 10), pal.prop);
-  }
-
-  pushFlat(shapes, rect(minX - 10, maxY + 2, maxX - minX + 20, 8), pal.ground);
-
   const ANT = -1;
+  SIDE = "F";
   pushLeg(shapes, farLeg, farFoot, pal.skinFar, pal.shoeFar, pal, ANT, 0);
   const farTube = shortsTube(farHip, spec.thighFar);
-  pushShortsLeg(shapes, farTube, pal.shortsFar, ANT, 0);
+  pushShortsLeg(shapes, farTube, pal.shortsFar, ANT, 0, spec.hem);
   pushArm(shapes, farArm, pal.skinFar, ANT, 0);
 
-  push(shapes, sideTorso(hip, shoulder), pal.skin);
+  SIDE = "N";
+  withTag("torso", () => push(shapes, sideTorso(hip, shoulder), pal.skin));
   pushThigh(shapes, nearLeg, pal.skin, ANT, 0);
-  push(shapes, sideTank(hip, shoulder), pal.tank);
-  push(shapes, sideChest(hip, shoulder), pal.tankLite);
-  sideTankDetail(shapes, hip, shoulder, pal);
+  withTag("tank", () => {
+    push(shapes, sideTank(hip, shoulder), pal.tank);
+    push(shapes, sideChest(hip, shoulder), pal.tankLite);
+    sideTankDetail(shapes, hip, shoulder, pal);
+  });
   const nearTube = shortsTube(hip, spec.thigh);
-  shapes.push({ pts: shortsPelvis(sideEdges(hip, shoulder, -0.03, 0.44, 22, () => 1.04, () => 1.04), [nearTube, farTube]), fill: pal.shorts, shade: false });
-  glaze(shapes, torsoLens(hip, shoulder, 0.02, 0.28, -0.55, 0.3), lit(pal.shorts), 0.1);
-  line(shapes, torsoPts(hip, shoulder, [[0.26, -0.97], [0.12, -0.9], [0.02, -0.6]]), "#000000", 0.45, 0.85);
-  pushShortsLeg(shapes, nearTube, pal.shorts, ANT, 0);
-  sideShortsDetail(shapes, hip, shoulder);
-  push(shapes, sideWaist(hip, shoulder), pal.waist, false);
-  sideWaistDetail(shapes, hip, shoulder);
+  withTag("shorts", () => {
+    shapes.push({ pts: shortsPelvis(sideEdges(hip, shoulder, -0.03, 0.44, 22, () => 1.04, () => 1.04), [nearTube, farTube]), fill: pal.shorts, shade: false, tag: "shorts" });
+    glaze(shapes, torsoLens(hip, shoulder, 0.02, 0.28, -0.55, 0.3), lit(pal.shorts), 0.1);
+    line(shapes, torsoPts(hip, shoulder, [[0.26, -0.97], [0.12, -0.9], [0.02, -0.6]]), "#000000", 0.45, 0.85);
+    pushShortsLeg(shapes, nearTube, pal.shorts, ANT, 0, spec.hem);
+    sideShortsDetail(shapes, hip, shoulder);
+    push(shapes, sideWaist(hip, shoulder), pal.waist, false);
+    sideWaistDetail(shapes, hip, shoulder);
+  });
   pushShin(shapes, nearLeg, pal.skin, ANT, 0);
-  pushShoe(shapes, nearLeg.end, nearFoot, pal.shoe, pal);
-  push(shapes, neck, pal.skin);
-  neckDetail(shapes, neckSeg, pal.skin, false);
+  pushShoe(shapes, nearLeg.end, nearFoot, pal.shoe, pal, nearLeg.soleUp);
+  withTag("neck", () => {
+    push(shapes, neck, pal.skin);
+    neckDetail(shapes, neckSeg, pal.skin, false);
+  });
   pushArm(shapes, nearArm, pal.skin, ANT, 0);
-  pushHead(shapes, "side", headCenter, headTilt, pal);
+  withTag("head", () => pushHead(shapes, "side", headCenter, headTilt, pal));
+  SIDE = "";
 
   if (spec.weight) {
-    const bell = dumbbell(nearArm.end, spec.fore);
-    push(shapes, bell.bar, pal.metal);
-    for (const plate of bell.plates) {
-      shapes.push({ pts: plate, fill: pal.metal, shade: "linear", sharp: true });
-    }
-    for (const cap of bell.caps) glaze(shapes, cap, dark(pal.metal), 0.45);
+    withTag("weight", () => {
+      const bell = dumbbell(nearArm.end, spec.fore);
+      push(shapes, bell.bar, pal.metal);
+      for (const plate of bell.plates) {
+        shapes.push({ pts: plate, fill: pal.metal, shade: "linear", sharp: true, tag: "weight" });
+      }
+      for (const cap of bell.caps) glaze(shapes, cap, dark(pal.metal), 0.45);
+    });
   }
-  return shapes;
+  return { shapes, nearLeg, farLeg, nearArm, farArm, hip, shoulder };
+}
+
+function buildSide(spec: SideSpec, pal: Palette): Raw[] {
+  const { shapes, nearLeg } = sideBody(spec, pal);
+  const body = boxOf(shapes, isBody)!;
+  const floor = body.maxY - CONTACT_OVERLAP;
+  const props: Raw[] = [];
+  const hands = boxOf(shapes, (t) => t === "handN" || t === "handF");
+  if (spec.prop === "dip" && hands) {
+    // Bench top exactly under the planted hands.
+    const top = hands.maxY - CONTACT_OVERLAP;
+    const hx = (hands.minX + hands.maxX) / 2;
+    pushFlat(props, rect(hx - 118, top, 136, Math.max(12, floor - top)), pal.prop);
+  } else if (spec.prop === "skull") {
+    const torso = boxOf(shapes, (t) => t === "torso" || t === "shorts" || t === "tank")!;
+    const top = torso.maxY - CONTACT_OVERLAP;
+    const left = Math.min(torso.minX, nearLeg.knee.x) - 22;
+    const right = Math.max(torso.maxX, nearLeg.knee.x) - 10;
+    pushFlat(props, rect(left, top, right - left, Math.max(12, floor - top)), pal.prop);
+  } else if (spec.prop === "ham") {
+    const foot = boxOf(shapes, (t) => t === "footN")!;
+    const top = foot.maxY - CONTACT_OVERLAP;
+    const cx = (foot.minX + foot.maxX) / 2;
+    pushFlat(props, rect(cx - 26, top, 52, Math.max(12, floor - top)), pal.prop);
+  } else if (spec.prop === "wall" && hands) {
+    // Wall face exactly at the palms.
+    const x = hands.maxX - CONTACT_OVERLAP;
+    const top = Math.min(hands.minY, body.minY) - 30;
+    pushFlat(props, rect(x, top, 16, floor - top + 8), pal.prop);
+  }
+  pushFlat(props, rect(body.minX - 10, floor, body.maxX - body.minX + 20, 8), pal.ground);
+  return [...props, ...shapes];
 }
 
 function buildFront(spec: FrontSpec, pal: Palette): Raw[] {
@@ -2105,8 +2230,8 @@ function buildFront(spec: FrontSpec, pal: Palette): Raw[] {
   const footR = spec.footR ?? autoFoot(spec.shinR);
   const legL = limbChain(hipL, spec.thighL, spec.shinL, "leg", footL);
   const legR = limbChain(hipR, spec.thighR, spec.shinR, "leg", footR);
-  const armL = limbChain(shoulderL, spec.armL, spec.foreL, "arm");
-  const armR = limbChain(shoulderR, spec.armR, spec.foreR, "arm");
+  const armL = limbChain(shoulderL, spec.armL, spec.foreL, "arm", undefined, spec.handL);
+  const armR = limbChain(shoulderR, spec.armR, spec.foreR, "arm", undefined, spec.handR);
   const axis = { x: 0, y: -1 };
   const neckBase = add({ x: hip.x, y: shoulderY }, axis, -6);
   const neckTop = add({ x: hip.x, y: shoulderY }, axis, LEN.neck);
@@ -2115,45 +2240,100 @@ function buildFront(spec: FrontSpec, pal: Palette): Raw[] {
   const neck = solidLimb(neckSeg.a, neckSeg.b, neckSeg.r);
 
   const shapes: Raw[] = [];
-  const { minX, maxX, maxY } = boundsOf([
-    ...legL.parts,
-    ...legR.parts,
-    ...armL.parts,
-    ...armR.parts,
-    frontTorso(hip, shoulderY),
-    placeHead(headCenter, 0, LEN.head, FRONT_HEAD),
-  ]);
-  pushFlat(shapes, rect(minX - 10, maxY + 2, maxX - minX + 20, 8), pal.ground);
-
+  SIDE = "L";
   pushLeg(shapes, legL, footL, pal.skin, pal.shoe, pal, 0, -1);
+  SIDE = "R";
   pushLeg(shapes, legR, footR, pal.skin, pal.shoe, pal, 0, 1);
-  push(shapes, frontTorso(hip, shoulderY), pal.skin);
-  push(shapes, frontTank(hip, shoulderY), pal.tank);
-  push(shapes, frontPec(hip, shoulderY, -1), pal.tankLite);
-  push(shapes, frontPec(hip, shoulderY, 1), pal.tankLite);
-  frontTankDetail(shapes, hip, shoulderY, pal);
-  push(shapes, frontScoop(hip, shoulderY), pal.skin);
-  frontScoopDetail(shapes, hip, shoulderY, pal);
+  SIDE = "";
+  withTag("torso", () => push(shapes, frontTorso(hip, shoulderY), pal.skin));
+  withTag("tank", () => {
+    push(shapes, frontTank(hip, shoulderY), pal.tank);
+    push(shapes, frontPec(hip, shoulderY, -1), pal.tankLite);
+    push(shapes, frontPec(hip, shoulderY, 1), pal.tankLite);
+    frontTankDetail(shapes, hip, shoulderY, pal);
+  });
+  withTag("torso", () => {
+    push(shapes, frontScoop(hip, shoulderY), pal.skin);
+    frontScoopDetail(shapes, hip, shoulderY, pal);
+  });
   const tubeL = shortsTube(hipL, spec.thighL);
   const tubeR = shortsTube(hipR, spec.thighR);
-  shapes.push({ pts: shortsPelvis(frontBand(hip, shoulderY, 0.56, 1.02, 20, () => 1.03), [tubeL, tubeR]), fill: pal.shorts, shade: false });
-  pushShortsLeg(shapes, tubeL, pal.shorts, 0, -1);
-  pushShortsLeg(shapes, tubeR, pal.shorts, 0, 1);
-  frontShortsDetail(shapes, hip, shoulderY);
-  // Inseam: where the two shorts legs meet below the crotch.
-  const innerL = segAt(tubeL, SHORTS_HEM_T, -1);
-  const innerR = segAt(tubeR, SHORTS_HEM_T, 1);
-  const crotch = { x: hip.x, y: hip.y + 4 };
-  line(shapes, [crotch, lerpPt(crotch, lerpPt(innerL, innerR, 0.5), 0.55), lerpPt(innerL, innerR, 0.5)], "#000000", 0.6, 0.9);
-  push(shapes, frontWaist(hip, shoulderY), pal.waist, false);
-  frontWaistDetail(shapes, hip, shoulderY);
+  withTag("shorts", () => {
+    shapes.push({ pts: shortsPelvis(frontBand(hip, shoulderY, 0.56, 1.02, 20, () => 1.03), [tubeL, tubeR]), fill: pal.shorts, shade: false, tag: "shorts" });
+    pushShortsLeg(shapes, tubeL, pal.shorts, 0, -1);
+    pushShortsLeg(shapes, tubeR, pal.shorts, 0, 1);
+    frontShortsDetail(shapes, hip, shoulderY);
+    // Inseam: where the two shorts legs meet below the crotch.
+    const innerL = segAt(tubeL, SHORTS_HEM_T, -1);
+    const innerR = segAt(tubeR, SHORTS_HEM_T, 1);
+    const crotch = { x: hip.x, y: hip.y + 4 };
+    line(shapes, [crotch, lerpPt(crotch, lerpPt(innerL, innerR, 0.5), 0.55), lerpPt(innerL, innerR, 0.5)], "#000000", 0.6, 0.9);
+    push(shapes, frontWaist(hip, shoulderY), pal.waist, false);
+    frontWaistDetail(shapes, hip, shoulderY);
+  });
+  SIDE = "L";
   pushArm(shapes, armL, pal.skin, 0, -1);
+  SIDE = "R";
   pushArm(shapes, armR, pal.skin, 0, 1);
-  push(shapes, neck, pal.skin);
-  neckDetail(shapes, neckSeg, pal.skin, true);
-  pushHead(shapes, "front", headCenter, 0, pal);
-  return shapes;
+  SIDE = "";
+  withTag("neck", () => {
+    push(shapes, neck, pal.skin);
+    neckDetail(shapes, neckSeg, pal.skin, true);
+  });
+  withTag("head", () => pushHead(shapes, "front", headCenter, 0, pal));
+
+  const body = boxOf(shapes, isBody)!;
+  const floor = body.maxY - CONTACT_OVERLAP;
+  const ground: Raw[] = [];
+  pushFlat(ground, rect(body.minX - 10, floor, body.maxX - body.minX + 20, 8), pal.ground);
+  return [...ground, ...shapes];
 }
+
+/** Lowest point of each body part vs. the floor and props, in figure units (for pose QA). */
+export function poseContacts(
+  slug: ExerciseSlug,
+  phase: PosePhase
+): { floor: number; parts: Record<string, Box>; props: Box[] } {
+  const spec = POSES[slug][phase];
+  const raw = spec.plane === "side" ? buildSide(spec, PALETTE.paper) : buildFront(spec, PALETTE.paper);
+  const parts: Record<string, Box> = {};
+  const tags = new Set(raw.map((r) => r.tag ?? "").filter(isBody));
+  for (const t of tags) parts[t] = boxOf(raw, (x) => x === t)!;
+  const flats = raw.filter((r) => r.sharp && r.tag === "");
+  const props = flats.map((r) => boxOf([{ ...r, tag: "p" }], () => true)!);
+  const floor = props[props.length - 1].minY;
+  return { floor, parts, props: props.slice(0, -1) };
+}
+
+/** Same as poseContacts but for an arbitrary spec (used to tune pose angles). */
+export function specContacts(spec: Spec): { floor: number; parts: Record<string, Box>; props: Box[] } {
+  const raw = spec.plane === "side" ? buildSide(spec, PALETTE.paper) : buildFront(spec, PALETTE.paper);
+  const parts: Record<string, Box> = {};
+  const tags = new Set(raw.map((r) => r.tag ?? "").filter(isBody));
+  for (const t of tags) parts[t] = boxOf(raw, (x) => x === t)!;
+  const flats = raw.filter((r) => r.sharp && r.tag === "");
+  const props = flats.map((r) => boxOf([{ ...r, tag: "p" }], () => true)!);
+  return { floor: props[props.length - 1].minY, parts, props: props.slice(0, -1) };
+}
+
+/** Joint positions of a side-view spec (hip at the origin), for pose QA. */
+export function specJoints(spec: SideSpec) {
+  const b = sideBody(spec, PALETTE.paper);
+  return {
+    hip: b.hip,
+    shoulder: b.shoulder,
+    knee: b.nearLeg.knee,
+    ankle: b.nearLeg.end,
+    elbow: b.nearArm.knee,
+    wrist: b.nearArm.end,
+    kneeFar: b.farLeg.knee,
+    ankleFar: b.farLeg.end,
+    elbowFar: b.farArm.knee,
+    wristFar: b.farArm.end,
+  };
+}
+
+export { POSES as POSE_SPECS };
 
 export const FIGURE_VIEWBOX = "0 0 200 260";
 
