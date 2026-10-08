@@ -101,6 +101,7 @@ export function HomeClient({
                   <DigitalHuman
                     slug={ex.slug}
                     phase="exec"
+                    fit="crop"
                     className="h-10 w-10 shrink-0 rounded-lg bg-zinc-950"
                     title=""
                   />

@@ -87,7 +87,7 @@ function LoginFigure({ spec }: { spec: FigureSpec }) {
       <DigitalHuman
         slug={spec.slug}
         phase={exec ? "exec" : "start"}
-        tone="mist"
+        preloadOther
         className="h-full w-full"
       />
     </div>

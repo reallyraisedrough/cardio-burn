@@ -31,6 +31,7 @@ export function ExerciseCard({ exercise, last, goalLabel }: Props) {
           <DigitalHuman
             slug={exercise.slug}
             phase="exec"
+            fit="crop"
             className="h-full w-full"
             title={`Proper form for ${exercise.name}`}
           />

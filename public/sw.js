@@ -1,6 +1,8 @@
 /* Cardio Burner — offline shell + local inspiration notifications */
-const CACHE = "cardio-burner-v16";
+const CACHE = "cardio-burner-v17";
 const MUSIC_CACHE = "cardio-burner-music-v1";
+// 3D pose renders (/poses/*.webp): never precached, cached the first time each is shown.
+const POSE_CACHE = "cardio-burner-poses-3d1";
 const PRECACHE = ["/", "/manifest.webmanifest", "/icons/icon-192.png"];
 
 self.addEventListener("install", (event) => {
@@ -15,7 +17,7 @@ self.addEventListener("activate", (event) => {
       .keys()
       .then((keys) =>
         Promise.all(
-          keys.filter((k) => k !== CACHE && k !== MUSIC_CACHE).map((k) => caches.delete(k))
+          keys.filter((k) => k !== CACHE && k !== MUSIC_CACHE && k !== POSE_CACHE).map((k) => caches.delete(k))
         )
       )
       .then(() => self.clients.claim())
@@ -28,6 +30,10 @@ self.addEventListener("fetch", (event) => {
   // 4K pose exports are downloads only: never precached or runtime-cached (too heavy).
   const path = new URL(request.url).pathname;
   if (path.startsWith("/poses-4k/")) return;
+  if (path.startsWith("/poses/") && path.endsWith(".webp")) {
+    event.respondWith(poseResponse(request));
+    return;
+  }
   // Workout music: not precached. Cached the first time a track plays, then
   // served (with byte ranges, which iOS needs for audio) from the cache.
   if (path.startsWith("/music/") && path.endsWith(".mp3")) {
@@ -49,6 +55,15 @@ self.addEventListener("fetch", (event) => {
     })
   );
 });
+
+async function poseResponse(request) {
+  const cache = await caches.open(POSE_CACHE);
+  const cached = await cache.match(request);
+  if (cached) return cached;
+  const response = await fetch(request);
+  if (response.ok) cache.put(request, response.clone());
+  return response;
+}
 
 const musicFetches = new Set();
 

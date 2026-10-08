@@ -446,6 +446,7 @@ export function WorkoutClient({
               <DigitalHuman
                 slug={exercise.slug}
                 phase="exec"
+                fit="crop"
                 className="h-20 w-20 shrink-0 rounded-2xl bg-zinc-950"
                 title={`Form for ${exercise.name}`}
               />
@@ -704,7 +705,8 @@ export function WorkoutClient({
         <DigitalHuman
           slug={exercise.slug}
           phase="exec"
-          className="h-12 w-12 shrink-0 rounded-lg bg-zinc-950"
+          fit="crop"
+                className="h-12 w-12 shrink-0 rounded-lg bg-zinc-950"
           title={`${exercise.name} form`}
         />
         <div className="min-w-0 flex-1">
